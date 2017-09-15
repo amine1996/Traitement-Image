@@ -32,8 +32,8 @@
 *.app
 
 #Useless
-./bin
-./CMakeFiles
+bin/
+CMakeFiles/
 CMakeCache.txt
 *.cmake
 Makefile
