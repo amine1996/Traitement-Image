@@ -27,9 +27,9 @@ int main(int argc, char **argv)
 	}
 
 	threshold(grayscaleInput, binaryOutput, seuil, 255, THRESH_BINARY);
+	//adaptiveThreshold(grayscaleInput, binaryOutput, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 31, 70);
 
 	imshow("Display window", binaryOutput);
 	waitKey(0);
-
 	return 0;
 }

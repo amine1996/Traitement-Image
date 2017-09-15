@@ -31,10 +31,11 @@
 *.out
 *.app
 
-#Useless
+#Project
 bin/
 CMakeFiles/
 CMakeCache.txt
 *.cmake
 Makefile
 build/
+.vscode/
