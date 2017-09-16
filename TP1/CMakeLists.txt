@@ -22,12 +22,21 @@ include_directories (${CMAKE_CURRENT_BINARY_DIR})
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
 
-add_executable (lectureImage
-  main.cpp
+add_executable (seuilGris
+  seuilGris.cpp
 )
 
 
-target_link_libraries (lectureImage
+target_link_libraries (seuilGris	
+  ${OpenCV_LIBS}
+)
+
+add_executable (sobel
+  sobel.cpp
+)
+
+
+target_link_libraries (sobel	
   ${OpenCV_LIBS}
 )
 
