@@ -40,3 +40,11 @@ target_link_libraries (sobel
   ${OpenCV_LIBS}
 )
 
+
+add_executable (evaluation
+   evaluation.cpp
+)
+
+target_link_libraries (evaluation	
+  ${OpenCV_LIBS}
+)

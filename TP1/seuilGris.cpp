@@ -28,13 +28,10 @@ int main(int argc, char **argv)
 	}
 
 	threshold(grayscaleInput, binaryOutput, seuil, 255, THRESH_BINARY);
-	//adaptiveThreshold(grayscaleInput, binaryOutput, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 31, 70);
 
-	//imshow("Original Image", orignalPic);
 	imshow("Binary Image", binaryOutput);
 
-	imwrite( output, binaryOutput );
-
+	imwrite(output, binaryOutput);
 
 	waitKey(0);
 	return 0;
