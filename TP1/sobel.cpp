@@ -24,18 +24,21 @@ int main(int argc, char **argv)
 
 	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
-	Mat binaryOutput(grayscaleInput.size(), grayscaleInput.type());
-	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
-	Mat grady(grayscaleInput.size(), grayscaleInput.type());
 
-	if (!grayscaleInput.data) // Check for invalid input
+	if (!grayscaleInput.data || !originalPic.data) // Check for invalid input
 	{
 		cout << "Could not open or find the image" << std::endl;
 		return -1;
 	}
 
-	Sobel( grayscaleInput, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT );
-	Sobel( grayscaleInput, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT );
+	//GaussianBlur(grayscaleInput, grayscaleInput, Size(1, 1), 0, 0, BORDER_DEFAULT);
+
+	Mat binaryOutput(grayscaleInput.size(), grayscaleInput.type());
+	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
+	Mat grady(grayscaleInput.size(), grayscaleInput.type());
+
+	Sobel(grayscaleInput, gradx, -1, 1, 0, 3, 2, 0, BORDER_DEFAULT);
+	Sobel(grayscaleInput, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
 	imshow("gradx Image", gradx);
 	imshow("grady Image", grady);
