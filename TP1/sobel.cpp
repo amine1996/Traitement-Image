@@ -1,6 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 using namespace cv;
@@ -13,11 +14,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	const int seuil = 120; // seuil à fixer nous même
+	int seuil = 110; // seuil à fixer nous même
 	const char *input = argv[1];
 	const char *output = argv[2];
 
-	Mat orignalPic = imread(input, CV_LOAD_IMAGE_COLOR);
+	if(argc > 3){
+		seuil = atoi(argv[3]);
+	}
+
+	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
 	Mat binaryOutput(grayscaleInput.size(), grayscaleInput.type());
 	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
@@ -34,24 +39,20 @@ int main(int argc, char **argv)
 
 	imshow("gradx Image", gradx);
 	imshow("grady Image", grady);
-		
-	pow(gradx, 2, gradx);
-	pow(grady, 2, grady);
-	
-	add( gradx, grady, binaryOutput );
 
-	/*sqrt(binaryOutput, binaryOutput); /// bug ici core dump pow je sais plus quoi mais c'est bien ici 
-
-	imshow("Sobel Image", binaryOutput);
+	for(int i = 0; i < originalPic.cols; i++){
+		for(int j = 0; j < originalPic.rows; j++){
+			binaryOutput.at<uchar>(j,i) = (uchar) round( sqrt(pow(gradx.at<uchar>(j,i), 2) + pow(grady.at<uchar>(j,i), 2)));
+		}
+	}
 
 	threshold(binaryOutput, binaryOutput, seuil, 255, THRESH_BINARY);
-	//adaptiveThreshold(grayscaleInput, binaryOutput, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 31, 70);
 
-	imshow("Original Image", orignalPic);
-	imshow("Binary Image", binaryOutput);
+	imshow("Original Image", originalPic);
+	imshow("Sobel  Image", binaryOutput);
 
-	imwrite( output, binaryOutput );*/
-
+	imwrite( output, binaryOutput );
+	
 
 	waitKey(0);
 	return 0;
