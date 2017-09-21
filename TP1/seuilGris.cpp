@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 	}
 
 	threshold(grayscaleInput, binaryOutput, seuil, 255, THRESH_BINARY);
+	GaussianBlur(binaryOutput, binaryOutput, Size(3, 3), 0, 1);
 
 	imshow("Binary Image", binaryOutput);
 

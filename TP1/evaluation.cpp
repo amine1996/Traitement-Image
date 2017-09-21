@@ -47,6 +47,7 @@ int main(int argc, char **argv)
                 else
                     falseNegative += 1;
             }
+
             //Here realPixel can't be 255 so it's a false positive
             else if (userPixel == 255)
             {
