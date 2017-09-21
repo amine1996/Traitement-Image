@@ -10,17 +10,17 @@ SOURCEPATH="../image/Source"
 OUTPUTPATH="../image/Result"
 EXPECTEDPATH="../image/ExpectedResult"
 
-for fullpath in $SOURCEPATH/*.{jpg,ppm}; do
-	filename=$(basename "$fullpath")
-	filenamenoext="${filename%.*}"
-	ext="${filename##*.}"
-	echo "$fullpath $OUTPUTPATH/$filenamenoext.jpg"
-	timeout 3s "$EXECPATH/combinaison" "$fullpath" "$OUTPUTPATH/$filenamenoext.jpg"
+for fullPath in $SOURCEPATH/*.{jpg,ppm}; do
+	fileName=$(basename "$fullPath")
+	fileNameNoExt="${fileName%.*}"
+	ext="${fileName##*.}"
+	echo "$fullPath $OUTPUTPATH/$fileNameNoExt.jpg"
+	timeout 3s "$EXECPATH/combinaison" "$fullPath" "$OUTPUTPATH/$fileNameNoExt.jpg"
 	if [ $ext = "ppm" ]
 	then
 		resExt="pgm"
 	else
 		resExt="bmp"
 	fi
-	"$EXECPATH/evaluation" "$OUTPUTPATH/$filenamenoext.jpg" "$EXPECTEDPATH/$filenamenoext.$resExt"
+	"$EXECPATH/evaluation" "$OUTPUTPATH/$fileNameNoExt.jpg" "$EXPECTEDPATH/$fileNameNoExt.$resExt"
 done
