@@ -48,3 +48,11 @@ add_executable (evaluation
 target_link_libraries (evaluation	
   ${OpenCV_LIBS}
 )
+
+add_executable (combinaison
+   combinaison.cpp
+)
+
+target_link_libraries (combinaison
+   ${OpenCV_LIBS}
+)
