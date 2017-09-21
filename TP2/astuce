@@ -1,0 +1,6 @@
+1) Quand il y a plein ed votes pour une case, les voisins ont aussi beaucoup de votes 
+il faut donc écraser les voisins (un cube dans l'espace 3d  (xc,yc,r)) pour ne pas avoirs le même cercle plusieurs fois 
+
+
+2) petit cercle = petit nombre de vote = petit cercle pas détecté 
+	solution : incrémenter les votes par 1/r, comme cela c'est indépendant de la taille du cercle 
