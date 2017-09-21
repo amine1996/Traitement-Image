@@ -25,13 +25,15 @@ int main(int argc, char **argv)
 	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
 
+	
 	if (!grayscaleInput.data || !originalPic.data) // Check for invalid input
 	{
 		cout << "Could not open or find the image" << std::endl;
 		return -1;
 	}
 
-	//GaussianBlur(grayscaleInput, grayscaleInput, Size(1, 1), 0, 0, BORDER_DEFAULT);
+	fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);	
+	GaussianBlur(grayscaleInput, grayscaleInput, Size(7, 7), 0, 0, BORDER_DEFAULT);
 
 	Mat binaryOutput(grayscaleInput.size(), grayscaleInput.type());
 	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
@@ -40,18 +42,19 @@ int main(int argc, char **argv)
 	Sobel(grayscaleInput, gradx, -1, 1, 0, 3, 2, 0, BORDER_DEFAULT);
 	Sobel(grayscaleInput, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
-	imshow("gradx Image", gradx);
-	imshow("grady Image", grady);
+	//imshow("gradx Image", gradx);
+	//imshow("grady Image", grady);
 
-	for(int i = 0; i < originalPic.cols; i++){
-		for(int j = 0; j < originalPic.rows; j++){
-			binaryOutput.at<uchar>(j,i) = (uchar) round( sqrt(pow(gradx.at<uchar>(j,i), 2) + pow(grady.at<uchar>(j,i), 2)));
+	for(int i = 0; i < originalPic.rows; i++){
+		for(int j = 0; j < originalPic.cols; j++){
+			binaryOutput.at<uchar>(i,j) = (uchar) round( sqrt(pow(gradx.at<uchar>(i,j), 2) + pow(grady.at<uchar>(i,j), 2)));
 		}
-	}
+	}	
+
+	imshow("gradient Image", binaryOutput);
 
 	threshold(binaryOutput, binaryOutput, seuil, 255, THRESH_BINARY);
 
-	imshow("Original Image", originalPic);
 	imshow("Sobel  Image", binaryOutput);
 
 	imwrite( output, binaryOutput );
