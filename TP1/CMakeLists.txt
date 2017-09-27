@@ -40,7 +40,6 @@ target_link_libraries (sobel
   ${OpenCV_LIBS}
 )
 
-
 add_executable (evaluation
    evaluation.cpp
 )
@@ -54,5 +53,13 @@ add_executable (combinaison
 )
 
 target_link_libraries (combinaison
+   ${OpenCV_LIBS}
+)
+
+add_executable (bestResult
+   bestResult.cpp
+)
+
+target_link_libraries (bestResult
    ${OpenCV_LIBS}
 )
