@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 	}
 
 	fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);	
-	GaussianBlur(grayscaleInput, grayscaleInput, Size(7, 7), 0, 0, BORDER_DEFAULT);
+	GaussianBlur(grayscaleInput, grayscaleInput, Size(7, 5), 0, 0, BORDER_DEFAULT);
 
 	Mat binaryOutput(grayscaleInput.size(), grayscaleInput.type());
 	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
