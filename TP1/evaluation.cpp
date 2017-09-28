@@ -30,7 +30,7 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
     unsigned char *userDetectionDataPtr = (unsigned char *)(userDetectionMat.data);
     unsigned char *realDetectionDataPtr = (unsigned char *)(realDetectionMat.data);
 
-    pixelState result = pixelState::FN;
+    pixelState result = FN;
 
     int userPixel, realPixel;
     double truePositive = 0, falsePositive = 0, falseNegative = 0;
@@ -46,12 +46,12 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
             realPixel = realDetectionDataPtr[realDetectionMat.step * j + i];
 
             //State of the observed pixel
-            pixelState result = pixelState::FN;
+            pixelState result = FN;
 
             //Only truePositive
             if (userPixel == 255 && realPixel == 255)
             {
-                result = pixelState::TP;
+                result = TP;
             }
             //Ignore
             else if (userPixel == 0 && realPixel == 0)
@@ -79,12 +79,12 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
 
                         if (realPixel == 255)
                         {
-                            result = pixelState::TP;
+                            result = TP;
                             break;
                         }
                         else
                         {
-                            result = pixelState::FP;
+                            result = FP;
                         }
                     }
                 }
@@ -108,22 +108,22 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
 
                         if (userPixel == 255)
                         {
-                            result = pixelState::TP;
+                            result = TP;
                             break;
                         }
                         else
                         {
-                            result = pixelState::FN;
+                            result = FN;
                         }
                     }
                 }
             }
 
-            if (result == pixelState::TP)
+            if (result == TP)
                 truePositive += 1;
-            else if (result == pixelState::FP)
+            else if (result == FP)
                 falsePositive += 1;
-            else if (result == pixelState::FN)
+            else if (result == FN)
                 falseNegative += 1;
         }
     }
@@ -131,16 +131,11 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
     double p = 0;
     double r = 0;
 
-    std::cout << truePositive << " " << falsePositive << " " << falseNegative << std::endl;
-
     if (truePositive != 0)
     {
         p = truePositive / (truePositive + falsePositive);
         r = truePositive / (truePositive + falseNegative);
     }
-
-    std::cout << p << std::endl
-              << r << std::endl;
 }
 
 int main(int argc, char **argv)
