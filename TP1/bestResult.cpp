@@ -17,6 +17,7 @@ enum pixelState
  *Sobel Function 
  */
 Mat sobel(Mat grayscaleInput,uchar seuil){
+	Mat imput = grayscaleInput.clone();
 	//fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);	
 	GaussianBlur(grayscaleInput, grayscaleInput, Size(7, 5), 0, 0, BORDER_DEFAULT);
 
@@ -24,8 +25,8 @@ Mat sobel(Mat grayscaleInput,uchar seuil){
 	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
 	Mat grady(grayscaleInput.size(), grayscaleInput.type());
 
-	Sobel(grayscaleInput, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-	Sobel(grayscaleInput, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(imput, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(imput, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
 
 	for(int i = 0; i < grayscaleInput.rows; i++){
@@ -44,14 +45,15 @@ Mat sobel(Mat grayscaleInput,uchar seuil){
  *laplacian Function 
  */
 Mat laplacian(Mat grayscaleInput, uchar seuil){
-	fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);	
-	GaussianBlur(grayscaleInput, grayscaleInput, Size(7, 5), 0, 0, BORDER_DEFAULT);
+	Mat imput = grayscaleInput.clone();
+	fastNlMeansDenoising(imput, imput, 8, 50, 10);	
+	GaussianBlur(imput, imput, Size(7, 5), 0, 0, BORDER_DEFAULT);
 
 	Mat output(grayscaleInput.size(), grayscaleInput.type());
 
 	Mat abs_dst;
 
-	Laplacian( grayscaleInput, output, -1, 3, 1, 0, BORDER_DEFAULT );
+	Laplacian( imput, output, -1, 3, 1, 0, BORDER_DEFAULT );
 	convertScaleAbs( output, output );
 	threshold(output, output, seuil, 255, THRESH_BINARY);
 
@@ -218,6 +220,7 @@ int main(int argc, char **argv)
 
 
 	double r, p, dist = 10, distTmp = 0;
+	int select = 0 ;
 	
 	if (!grayscaleInput.data || !originalPic.data || !resultatAttenduePic.data) // Check for invalid input
 	{
@@ -235,10 +238,10 @@ int main(int argc, char **argv)
 		if(distTmp < dist){
 			dist = distTmp;
 			seuilgris = tmp;
+			select = i;
 		}
 	}
-	
-	imshow("seuilgris  Image", seuilgris);
+	std::cout << "Seuil sélectionné : " << select << std::endl << std::endl;
 	
 	dist = 10;
 	
@@ -252,12 +255,14 @@ int main(int argc, char **argv)
 		if(distTmp < dist){
 			dist = distTmp;
 			sobel_ = tmp;
+			select = i;
 		}
+		tmp.release();
 	}
-	imshow("sobel  Image", sobel_);
+	std::cout << "Seuil sélectionné : " << select << std::endl;
 	
 	dist = 10;
-	
+
 	for(int i = 0; i <= 255; i++){
 		tmp = laplacian(grayscaleInput, i);
 		evaluation(tmp,resultatAttenduePic, r, p);
@@ -268,11 +273,11 @@ int main(int argc, char **argv)
 		if(distTmp < dist){
 			dist = distTmp;
 			laplacian_ = tmp;
+			select = i;
 		}
 	}
-	imshow("laplacian  Image", laplacian_);
-
-	
+	std::cout << "Seuil sélectionné : " << select << std::endl;
+		
 	for(int i = 0; i < grayscaleInput.rows; i++){
 		for(int j = 0; j < grayscaleInput.cols; j++){
 			if(seuilgris.at<uchar>(i,j) == sobel_.at<uchar>(i,j) && sobel_.at<uchar>(i,j) == laplacian_.at<uchar>(i,j)){
@@ -281,7 +286,14 @@ int main(int argc, char **argv)
 		}
 	}
 
+	imshow("seuilgris  Image", seuilgris);
+	imshow("sobel  Image", sobel_);
+	imshow("laplacian  Image", laplacian_);
 	imshow("Result  Image", result);
+
+	/*evaluation(result,resultatAttenduePic, r, p);
+	std::cout << std::endl << "Evalution image résultat " << std::endl << "P : " << p << std::endl
+	<< "R : " << r << std::endl;*/
 
 	waitKey(0);
 	return 0;

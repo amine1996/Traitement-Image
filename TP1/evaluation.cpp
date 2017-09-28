@@ -136,6 +136,9 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
         p = truePositive / (truePositive + falsePositive);
         r = truePositive / (truePositive + falseNegative);
     }
+
+    std::cout <<  "P : " << p << std::endl
+    << "R : " << r << std::endl << std::endl;
 }
 
 int main(int argc, char **argv)
