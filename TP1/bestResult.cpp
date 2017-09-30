@@ -13,25 +13,35 @@ enum pixelState
 	FN
 };
 
+struct bestValues
+{
+	int threshold;
+	double p;
+	double r;
+};
+
 /**
  *Sobel Function 
  */
-Mat sobel(Mat grayscaleInput,uchar seuil){
-	Mat imput = grayscaleInput.clone();
-	//fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);	
-	GaussianBlur(grayscaleInput, grayscaleInput, Size(7, 5), 0, 0, BORDER_DEFAULT);
+Mat sobel(Mat grayscaleInput, uchar seuil)
+{
+	Mat grayscaleCopy = grayscaleInput.clone();
+	//fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);
+	//fastNlMeansDenoising(grayscaleInput, grayscaleInput);
+	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
-	Mat output(grayscaleInput.size(), grayscaleInput.type());
-	Mat gradx(grayscaleInput.size(), grayscaleInput.type());
-	Mat grady(grayscaleInput.size(), grayscaleInput.type());
+	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
+	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
+	Mat grady(grayscaleCopy.size(), grayscaleCopy.type());
 
-	Sobel(imput, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-	Sobel(imput, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(grayscaleCopy, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(grayscaleCopy, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
-
-	for(int i = 0; i < grayscaleInput.rows; i++){
-		for(int j = 0; j < grayscaleInput.cols; j++){
-			output.at<uchar>(i,j) = (uchar) round( sqrt(pow(gradx.at<uchar>(i,j), 2) + pow(grady.at<uchar>(i,j), 2)));
+	for (int i = 0; i < grayscaleCopy.rows; i++)
+	{
+		for (int j = 0; j < grayscaleCopy.cols; j++)
+		{
+			output.at<uchar>(i, j) = (uchar)round(sqrt(pow(gradx.at<uchar>(i, j), 2) + pow(grady.at<uchar>(i, j), 2)));
 		}
 	}
 
@@ -40,21 +50,22 @@ Mat sobel(Mat grayscaleInput,uchar seuil){
 	return output;
 }
 
-
 /**
  *laplacian Function 
  */
-Mat laplacian(Mat grayscaleInput, uchar seuil){
-	Mat imput = grayscaleInput.clone();
-	fastNlMeansDenoising(imput, imput, 8, 50, 10);	
-	GaussianBlur(imput, imput, Size(7, 5), 0, 0, BORDER_DEFAULT);
+Mat laplacian(Mat grayscaleInput, uchar seuil)
+{
+	Mat grayscaleCopy = grayscaleInput.clone();
+	//fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 8, 50, 10);
+	//fastNlMeansDenoising(grayscaleCopy, grayscaleCopy);
+	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
-	Mat output(grayscaleInput.size(), grayscaleInput.type());
+	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
 
 	Mat abs_dst;
 
-	Laplacian( imput, output, -1, 3, 1, 0, BORDER_DEFAULT );
-	convertScaleAbs( output, output );
+	Laplacian(grayscaleCopy, output, -1, 3, 1, 0, BORDER_DEFAULT);
+	convertScaleAbs(output, output);
 	threshold(output, output, seuil, 255, THRESH_BINARY);
 
 	return output;
@@ -63,132 +74,129 @@ Mat laplacian(Mat grayscaleInput, uchar seuil){
 /**
  *Grey scale Function 
  */
-Mat seuilDeGris(Mat grayscaleInput, uchar seuil){
+Mat seuilDeGris(Mat grayscaleInput, uchar seuil)
+{
 	Mat output(grayscaleInput.size(), grayscaleInput.type());
-	threshold(grayscaleInput, output, seuil, 255, THRESH_BINARY_INV);	
+	threshold(grayscaleInput, output, seuil, 255, THRESH_BINARY_INV);
 	return output;
 }
-
 
 /**
  *Detection evaluation function Function 
  */
-void evaluation( Mat userDetectionMat, Mat realDetectionMat, double& p_, double& r_)
+void evaluation(Mat userDetectionMat, Mat realDetectionMat, double &r_, double &p_)
 {
 
+	//Faster using the data pointers
+	unsigned char *userDetectionDataPtr = (unsigned char *)(userDetectionMat.data);
+	unsigned char *realDetectionDataPtr = (unsigned char *)(realDetectionMat.data);
 
-    //Faster using the data pointers
-    unsigned char *userDetectionDataPtr = (unsigned char *)(userDetectionMat.data);
-    unsigned char *realDetectionDataPtr = (unsigned char *)(realDetectionMat.data);
+	pixelState result = FN;
 
-    pixelState result = FN;
+	int userPixel, realPixel;
+	double truePositive = 0, falsePositive = 0, falseNegative = 0;
 
-    int userPixel, realPixel;
-    double truePositive = 0, falsePositive = 0, falseNegative = 0;
+	bool found = false;
+	for (int i = 0; i < userDetectionMat.cols; i++)
+	{
+		for (int j = 0; j < userDetectionMat.rows; j++)
+		{
+			//Pixel from the user matrix
+			userPixel = userDetectionDataPtr[userDetectionMat.step * j + i];
+			//Pixel from the expected result matrix
+			realPixel = realDetectionDataPtr[realDetectionMat.step * j + i];
 
-    bool found = false;
-    for (int i = 0; i < userDetectionMat.cols; i++)
-    {
-        for (int j = 0; j < userDetectionMat.rows; j++)
-        {
-            //Pixel from the user matrix
-            userPixel = userDetectionDataPtr[userDetectionMat.step * j + i];
-            //Pixel from the expected result matrix
-            realPixel = realDetectionDataPtr[realDetectionMat.step * j + i];
+			//State of the observed pixel
+			pixelState result = FN;
 
-            //State of the observed pixel
-            pixelState result = FN;
+			//Only truePositive
+			if (userPixel == 255 && realPixel == 255)
+			{
+				result = TP;
+			}
+			//Ignore
+			else if (userPixel == 0 && realPixel == 0)
+			{
+				continue;
+			}
+			else
+			{
+				//Here userPixel is 255 so it can either be truePositive or falsePositive
+				if (userPixel == 255)
+				{
+					for (int k = 0; k < 9; k++)
+					{
+						int rowPadding = (k % 3) - 1;
+						int colPadding = (k / 3) - 1;
 
-            //Only truePositive
-            if (userPixel == 255 && realPixel == 255)
-            {
-                result = TP;
-            }
-            //Ignore
-            else if (userPixel == 0 && realPixel == 0)
-            {
-                continue;
-            }
-            else
-            {
-                //Here userPixel is 255 so it can either be truePositive or falsePositive
-                if (userPixel == 255)
-                {
-                    for (int k = 0; k < 9; k++)
-                    {
-                        int rowPadding = (k % 3) - 1;
-                        int colPadding = (k / 3) - 1;
+						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
+							continue;
 
-                        //std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
-                        if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
-                            continue;
+						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
+							continue;
 
-                        if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
-                            continue;
+						realPixel = realDetectionDataPtr[realDetectionMat.step * (j + rowPadding) + (i + colPadding)];
 
-                        realPixel = realDetectionDataPtr[realDetectionMat.step * (j + rowPadding) + (i + colPadding)];
+						if (realPixel == 255)
+						{
+							result = TP;
+							break;
+						}
+						else
+						{
+							result = FP;
+						}
+					}
+				}
 
-                        if (realPixel == 255)
-                        {
-                            result = TP;
-                            break;
-                        }
-                        else
-                        {
-                            result = FP;
-                        }
-                    }
-                }
+				//Here realPixel can't be 255 so it can either be truePositive or falseNegative
+				else if (realPixel == 255)
+				{
+					for (int k = 0; k < 9; k++)
+					{
+						int rowPadding = (k % 3) - 1;
+						int colPadding = (k / 3) - 1;
 
-                //Here realPixel can't be 255 so it can either be truePositive or falseNegative
-                else if (realPixel == 255)
-                {
-                    for (int k = 0; k < 9; k++)
-                    {
-                        int rowPadding = (k % 3) - 1;
-                        int colPadding = (k / 3) - 1;
+						//std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
+						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
+							continue;
 
-                        //std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
-                        if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
-                            continue;
+						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
+							continue;
 
-                        if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
-                            continue;
+						userPixel = userDetectionDataPtr[userDetectionMat.step * (j + rowPadding) + (i + colPadding)];
 
-                        userPixel = userDetectionDataPtr[userDetectionMat.step * (j + rowPadding) + (i + colPadding)];
+						if (userPixel == 255)
+						{
+							result = TP;
+							break;
+						}
+						else
+						{
+							result = FN;
+						}
+					}
+				}
+			}
 
-                        if (userPixel == 255)
-                        {
-                            result = TP;
-                            break;
-                        }
-                        else
-                        {
-                            result = FN;
-                        }
-                    }
-                }
-            }
+			if (result == TP)
+				truePositive += 1;
+			else if (result == FP)
+				falsePositive += 1;
+			else if (result == FN)
+				falseNegative += 1;
+		}
+	}
 
-            if (result == TP)
-                truePositive += 1;
-            else if (result == FP)
-                falsePositive += 1;
-            else if (result == FN)
-                falseNegative += 1;
-        }
-    }
+	double p = 0;
+	double r = 0;
 
-    double p = 0;
-    double r = 0;
+	if (truePositive != 0)
+	{
+		p = truePositive / (truePositive + falsePositive);
+		r = truePositive / (truePositive + falseNegative);
+	}
 
- 
-    if (truePositive != 0)
-    {
-        p = truePositive / (truePositive + falsePositive);
-        r = truePositive / (truePositive + falseNegative);
-    }
-			  
 	p_ = p;
 	r_ = r;
 }
@@ -201,99 +209,135 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	int seuil = 110; // seuil à fixer nous même
+	bestValues bestGrayscale, bestSobel, bestLaplacian;
 	const char *input = argv[1];
 	const char *output = argv[2];
 	const char *resultatAttendue = argv[3];
 
-
-
 	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
-	Mat resultatAttenduePic = imread(resultatAttendue, CV_LOAD_IMAGE_GRAYSCALE);
+	Mat expectedResultPic = imread(resultatAttendue, CV_LOAD_IMAGE_GRAYSCALE);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
-	
+
 	Mat tmp(grayscaleInput.size(), grayscaleInput.type());
 	Mat result(grayscaleInput.size(), grayscaleInput.type());
 	Mat seuilgris(grayscaleInput.size(), grayscaleInput.type());
 	Mat sobel_(grayscaleInput.size(), grayscaleInput.type());
 	Mat laplacian_(grayscaleInput.size(), grayscaleInput.type());
 
-
 	double r, p, dist = 10, distTmp = 0;
-	int select = 0 ;
-	
-	if (!grayscaleInput.data || !originalPic.data || !resultatAttenduePic.data) // Check for invalid input
+
+	if (!grayscaleInput.data || !originalPic.data || !expectedResultPic.data) // Check for invalid input
 	{
 		cout << "Could not open or find the image" << std::endl;
 		return -1;
 	}
 
-
-	for(int i = 0; i <= 255; i++){
+	for (int i = 0; i <= 255; i++)
+	{
 		tmp = seuilDeGris(grayscaleInput, i);
-		evaluation(tmp,resultatAttenduePic, r, p);
-		std::cout << "Seuil : " << i << std::endl << "P : " << p << std::endl
-		<< "R : " << r << std::endl << std::endl;
-		distTmp = sqrt(pow(1-r,2) + pow(1-p, 2));
-		if(distTmp < dist){
+		evaluation(tmp, expectedResultPic, r, p);
+
+		std::cout << "Seuil : " << i << std::endl
+				  << "P : " << p << std::endl
+				  << "R : " << r << std::endl
+				  << std::endl;
+
+		distTmp = sqrt(pow(1 - r, 2) + pow(1 - p, 2));
+		if (distTmp < dist)
+		{
 			dist = distTmp;
 			seuilgris = tmp;
-			select = i;
+			bestGrayscale.threshold = i;
+			bestGrayscale.p = p;
+			bestGrayscale.r = r;
 		}
 	}
-	std::cout << "Seuil sélectionné : " << select << std::endl << std::endl;
-	
-	dist = 10;
-	
-	for(int i = 0; i <= 255; i++){
-		tmp = sobel(grayscaleInput, i);
-		evaluation(tmp,resultatAttenduePic, r, p);
-		std::cout << "Seuil : " << i << std::endl << "P : " << p << std::endl
-		<< "R : " << r << std::endl << std::endl;
 
-		distTmp = sqrt(pow(1-r,2) + pow(1-p, 2));
-		if(distTmp < dist){
+	dist = 10;
+
+	for (int i = 0; i <= 255; i++)
+	{
+		tmp = sobel(grayscaleInput, i);
+		evaluation(tmp, expectedResultPic, r, p);
+
+		std::cout << "Seuil (Sobel) : " << i << std::endl
+				  << "P : " << p << std::endl
+				  << "R : " << r << std::endl
+				  << std::endl;
+
+		distTmp = sqrt(pow(1 - r, 2) + pow(1 - p, 2));
+		if (distTmp < dist)
+		{
 			dist = distTmp;
 			sobel_ = tmp;
-			select = i;
+			bestSobel.threshold = i;
+			bestSobel.p = p;
+			bestSobel.r = r;
 		}
 		tmp.release();
 	}
-	std::cout << "Seuil sélectionné : " << select << std::endl;
-	
+
 	dist = 10;
 
-	for(int i = 0; i <= 255; i++){
+	for (int i = 0; i <= 255; i++)
+	{
 		tmp = laplacian(grayscaleInput, i);
-		evaluation(tmp,resultatAttenduePic, r, p);
-		std::cout << "Seuil : " << i << std::endl << "P : " << p << std::endl
-		<< "R : " << r << std::endl << std::endl;
+		evaluation(tmp, expectedResultPic, r, p);
 
-		distTmp = sqrt(pow(1-r,2) + pow(1-p, 2));
-		if(distTmp < dist){
+		std::cout << "Seuil (Laplacian) : " << i << std::endl
+				  << "P : " << p << std::endl
+				  << "R : " << r << std::endl
+				  << std::endl;
+
+		distTmp = sqrt(pow(1 - r, 2) + pow(1 - p, 2));
+		if (distTmp < dist)
+		{
 			dist = distTmp;
 			laplacian_ = tmp;
-			select = i;
+			bestLaplacian.threshold = i;
+			bestLaplacian.p = p;
+			bestLaplacian.r = r;
 		}
 	}
-	std::cout << "Seuil sélectionné : " << select << std::endl;
-		
-	for(int i = 0; i < grayscaleInput.rows; i++){
-		for(int j = 0; j < grayscaleInput.cols; j++){
-			if(seuilgris.at<uchar>(i,j) == sobel_.at<uchar>(i,j) && sobel_.at<uchar>(i,j) == laplacian_.at<uchar>(i,j)){
-				result.at<uchar>(i,j) = seuilgris.at<uchar>(i,j);
+
+	for (int i = 0; i < grayscaleInput.rows; i++)
+	{
+		for (int j = 0; j < grayscaleInput.cols; j++)
+		{
+			if (seuilgris.at<uchar>(i, j) == sobel_.at<uchar>(i, j) && sobel_.at<uchar>(i, j) == laplacian_.at<uchar>(i, j))
+			{
+				result.at<uchar>(i, j) = seuilgris.at<uchar>(i, j);
 			}
 		}
 	}
+
+	// Applying Blur effect on the
+	//Mat kernel = Mat::ones(7, 7, CV_32F);
+	//morphologyEx(result, result, MORPH_CLOSE, kernel);
 
 	imshow("seuilgris  Image", seuilgris);
 	imshow("sobel  Image", sobel_);
 	imshow("laplacian  Image", laplacian_);
 	imshow("Result  Image", result);
 
-	/*evaluation(result,resultatAttenduePic, r, p);
-	std::cout << std::endl << "Evalution image résultat " << std::endl << "P : " << p << std::endl
-	<< "R : " << r << std::endl;*/
+	std::cout << "Best for grayscale :" << std::endl
+			  << "\t threshold : " << bestGrayscale.threshold << std::endl
+			  << "\t p : " << bestGrayscale.p << std::endl
+			  << "\t r : " << bestGrayscale.r << std::endl
+			  << "Best for Sobel :" << std::endl
+			  << "\t threshold : " << bestSobel.threshold << std::endl
+			  << "\t p : " << bestSobel.p << std::endl
+			  << "\t r : " << bestSobel.r << std::endl
+			  << "Best for Laplacian :" << std::endl
+			  << "\t threshold : " << bestLaplacian.threshold << std::endl
+			  << "\t p : " << bestLaplacian.p << std::endl
+			  << "\t r : " << bestLaplacian.r << std::endl;
+
+	evaluation(result, expectedResultPic, r, p);
+	std::cout << std::endl
+			  << "Evalution image résultat " << std::endl
+			  << "P : " << p << std::endl
+			  << "R : " << r << std::endl;
 
 	waitKey(0);
 	return 0;
