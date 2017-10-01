@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 	const char *input = argv[2];
 	const char *output = argv[3];
 
-	Mat orignalPic = imread(input, CV_LOAD_IMAGE_COLOR);
+	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
 	Mat binaryOutput(grayscaleInput.size(), grayscaleInput.type());
 
@@ -27,6 +27,8 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	// THRESH_BINARY best option for us
+	// Set pixel value to max if original pixel value greater than threshold
 	threshold(grayscaleInput, binaryOutput, seuil, 255, THRESH_BINARY);
 
 	imshow("Binary Image", binaryOutput);
