@@ -63,16 +63,23 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
                 //Here userPixel is 255 so it can either be truePositive or falsePositive
                 if (userPixel == 255)
                 {
+                    //3x3 Detection around the pixel
                     for (int k = 0; k < 9; k++)
                     {
+                        /*Both can have a value of -1, 0 or 1
+                         * (-1,-1)  (0,-1)  (1,-1)
+                         * (-1, 0)  (0, 0)  (1, 0)
+                         * (-1, 1)  (0, 1)  (1, 1)
+                         */
                         int rowPadding = (k % 3) - 1;
                         int colPadding = (k / 3) - 1;
 
-                        //std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
-                        if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
+                        //To not get out of the image
+                        if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.cols - 1)
                             continue;
 
-                        if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
+                        //To not get out of the image
+                        if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.rows - 1)
                             continue;
 
                         realPixel = realDetectionDataPtr[realDetectionMat.step * (j + rowPadding) + (i + colPadding)];
@@ -92,16 +99,23 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
                 //Here realPixel can't be 255 so it can either be truePositive or falseNegative
                 else if (realPixel == 255)
                 {
+                    //3x3 Detection around the pixel
                     for (int k = 0; k < 9; k++)
                     {
+                        /*Both can have a value of -1, 0 or 1
+                         * (-1,-1)  (0,-1)  (1,-1)
+                         * (-1, 0)  (0, 0)  (1, 0)
+                         * (-1, 1)  (0, 1)  (1, 1)
+                         */
                         int rowPadding = (k % 3) - 1;
                         int colPadding = (k / 3) - 1;
 
-                        //std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
-                        if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
+                        //To not get out of the image
+                        if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.cols - 1)
                             continue;
 
-                        if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
+                        //To not get out of the image
+                        if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.rows - 1)
                             continue;
 
                         userPixel = userDetectionDataPtr[userDetectionMat.step * (j + rowPadding) + (i + colPadding)];
@@ -137,8 +151,9 @@ int evaluation(const char *expectedResultImagePath, const char *userImagePath)
         r = truePositive / (truePositive + falseNegative);
     }
 
-    std::cout <<  "P : " << p << std::endl
-    << "R : " << r << std::endl << std::endl;
+    std::cout << p << std::endl
+              << r << std::endl
+              << std::endl;
 }
 
 int main(int argc, char **argv)

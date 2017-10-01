@@ -6,13 +6,15 @@
 using namespace std;
 using namespace cv;
 
+//State of the pixel studied
 enum pixelState
 {
-	TP,
-	FP,
-	FN
+	TP, //TruePositive
+	FP, //FalsePositie
+	FN  //FalseNegative
 };
 
+//Struct use to store best values for debug purpose
 struct bestValues
 {
 	int threshold;
@@ -26,7 +28,11 @@ struct bestValues
 Mat sobel(Mat grayscaleInput, uchar seuil)
 {
 	Mat grayscaleCopy = grayscaleInput.clone();
+
+	//Denoising the image before applying the sobel filter
 	fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 10);
+
+	//Denoising using a gaussian blur
 	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(7, 5), 0, 0, BORDER_DEFAULT);
 
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
@@ -55,7 +61,11 @@ Mat sobel(Mat grayscaleInput, uchar seuil)
 Mat laplacian(Mat grayscaleInput, uchar seuil)
 {
 	Mat grayscaleCopy = grayscaleInput.clone();
+
+	//Denoising the image before applying the laplacian
 	fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 10);
+
+	//Denoising using a gaussian blur
 	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
@@ -122,14 +132,22 @@ void evaluation(Mat userDetectionMat, Mat realDetectionMat, double &r_, double &
 				//Here userPixel is 255 so it can either be truePositive or falsePositive
 				if (userPixel == 255)
 				{
+					//3x3 Detection around the pixel
 					for (int k = 0; k < 9; k++)
 					{
+						/*Both can have a value of -1, 0 or 1
+                         * (-1,-1)  (0,-1)  (1,-1)
+                         * (-1, 0)  (0, 0)  (1, 0)
+                         * (-1, 1)  (0, 1)  (1, 1)
+                         */
 						int rowPadding = (k % 3) - 1;
 						int colPadding = (k / 3) - 1;
 
+						//To not get out of the image
 						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.cols - 1)
 							continue;
 
+						//To not get out of the image
 						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.rows - 1)
 							continue;
 
@@ -150,15 +168,22 @@ void evaluation(Mat userDetectionMat, Mat realDetectionMat, double &r_, double &
 				//Here realPixel can't be 255 so it can either be truePositive or falseNegative
 				else if (realPixel == 255)
 				{
+					//3x3 Detection around the pixel
 					for (int k = 0; k < 9; k++)
 					{
+						/*Both can have a value of -1, 0 or 1
+                         * (-1,-1)  (0,-1)  (1,-1)
+                         * (-1, 0)  (0, 0)  (1, 0)
+                         * (-1, 1)  (0, 1)  (1, 1)
+                         */
 						int rowPadding = (k % 3) - 1;
 						int colPadding = (k / 3) - 1;
 
-						//std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
+						//To not get out of the image
 						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.cols - 1)
 							continue;
 
+						//To not get out of the image
 						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.rows - 1)
 							continue;
 
@@ -230,6 +255,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	//Test and selection of the best threshold
 	for (int i = 0; i <= 255; i++)
 	{
 		tmp = seuilDeGris(grayscaleInput, i);
@@ -240,11 +266,14 @@ int main(int argc, char **argv)
 				  << "R : " << r << std::endl
 				  << std::endl;
 
+		//Calculating the distance of point (p,r) to point (1,1)
 		distTmp = sqrt(pow(1 - r, 2) + pow(1 - p, 2));
 		if (distTmp < dist)
 		{
 			dist = distTmp;
 			seuilgris = tmp;
+
+			//Best values (for logging purpose)
 			bestGrayscale.threshold = i;
 			bestGrayscale.p = p;
 			bestGrayscale.r = r;
@@ -253,6 +282,7 @@ int main(int argc, char **argv)
 
 	dist = 10;
 
+	//Test and selection of the best threshold
 	for (int i = 0; i <= 255; i++)
 	{
 		tmp = sobel(grayscaleInput, i);
@@ -263,25 +293,29 @@ int main(int argc, char **argv)
 				  << "R : " << r << std::endl
 				  << std::endl;
 
+		//Calculating the distance of point (p,r) to point (1,1)
 		distTmp = sqrt(pow(1 - r, 2) + pow(1 - p, 2));
 		if (distTmp < dist)
 		{
 			dist = distTmp;
 			sobel_ = tmp;
+
+			//Best values (for logging purpose)
 			bestSobel.threshold = i;
 			bestSobel.p = p;
 			bestSobel.r = r;
 		}
-		tmp.release();
 	}
 
 	dist = 10;
 
+	//Test and selection of the best threshold
 	for (int i = 0; i <= 255; i++)
 	{
 		tmp = laplacian(grayscaleInput, i);
 		evaluation(tmp, expectedResultPic, r, p);
 
+		//Calculating the distance of point (p,r) to point (1,1)
 		std::cout << "Seuil (Laplacian) : " << i << std::endl
 				  << "P : " << p << std::endl
 				  << "R : " << r << std::endl
@@ -292,12 +326,13 @@ int main(int argc, char **argv)
 		{
 			dist = distTmp;
 			laplacian_ = tmp;
+
+			//Best values (for logging purpose)
 			bestLaplacian.threshold = i;
 			bestLaplacian.p = p;
 			bestLaplacian.r = r;
 		}
 	}
-
 
 	//Creation of the result image
 	for (int i = 0; i < grayscaleInput.rows; i++)
@@ -308,18 +343,16 @@ int main(int argc, char **argv)
 			{
 				result.at<uchar>(i, j) = seuilgris.at<uchar>(i, j);
 			}
-			if(seuilgris.at<uchar>(i, j) == laplacian_.at<uchar>(i, j)){
+			if (seuilgris.at<uchar>(i, j) == laplacian_.at<uchar>(i, j))
+			{
 				result.at<uchar>(i, j) = seuilgris.at<uchar>(i, j);
 			}
-			if(sobel_.at<uchar>(i, j) == laplacian_.at<uchar>(i, j)){
+			if (sobel_.at<uchar>(i, j) == laplacian_.at<uchar>(i, j))
+			{
 				result.at<uchar>(i, j) = sobel_.at<uchar>(i, j);
 			}
 		}
 	}
-
-	// Applying Blur effect on the
-	//Mat kernel = Mat::ones(7, 7, CV_32F);
-	//morphologyEx(result, result, MORPH_CLOSE, kernel);
 
 	imshow("seuilgris  Image", seuilgris);
 	imshow("sobel  Image", sobel_);
@@ -345,7 +378,7 @@ int main(int argc, char **argv)
 			  << "P : " << p << std::endl
 			  << "R : " << r << std::endl;
 
-	imwrite( output, result );
+	imwrite(output, result);
 
 	waitKey(0);
 	return 0;
