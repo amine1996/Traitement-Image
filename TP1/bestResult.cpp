@@ -26,9 +26,8 @@ struct bestValues
 Mat sobel(Mat grayscaleInput, uchar seuil)
 {
 	Mat grayscaleCopy = grayscaleInput.clone();
-	//fastNlMeansDenoising(grayscaleInput, grayscaleInput, 8, 50, 10);
-	//fastNlMeansDenoising(grayscaleInput, grayscaleInput);
-	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 10);
+	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(7, 5), 0, 0, BORDER_DEFAULT);
 
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
 	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
@@ -56,8 +55,7 @@ Mat sobel(Mat grayscaleInput, uchar seuil)
 Mat laplacian(Mat grayscaleInput, uchar seuil)
 {
 	Mat grayscaleCopy = grayscaleInput.clone();
-	//fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 8, 50, 10);
-	//fastNlMeansDenoising(grayscaleCopy, grayscaleCopy);
+	fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 10);
 	GaussianBlur(grayscaleCopy, grayscaleCopy, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
@@ -300,13 +298,21 @@ int main(int argc, char **argv)
 		}
 	}
 
+
+	//Creation of the result image
 	for (int i = 0; i < grayscaleInput.rows; i++)
 	{
 		for (int j = 0; j < grayscaleInput.cols; j++)
 		{
-			if (seuilgris.at<uchar>(i, j) == sobel_.at<uchar>(i, j) && sobel_.at<uchar>(i, j) == laplacian_.at<uchar>(i, j))
+			if (seuilgris.at<uchar>(i, j) == sobel_.at<uchar>(i, j))
 			{
 				result.at<uchar>(i, j) = seuilgris.at<uchar>(i, j);
+			}
+			if(seuilgris.at<uchar>(i, j) == laplacian_.at<uchar>(i, j)){
+				result.at<uchar>(i, j) = seuilgris.at<uchar>(i, j);
+			}
+			if(sobel_.at<uchar>(i, j) == laplacian_.at<uchar>(i, j)){
+				result.at<uchar>(i, j) = sobel_.at<uchar>(i, j);
 			}
 		}
 	}
@@ -338,6 +344,8 @@ int main(int argc, char **argv)
 			  << "Evalution image résultat " << std::endl
 			  << "P : " << p << std::endl
 			  << "R : " << r << std::endl;
+
+	imwrite( output, result );
 
 	waitKey(0);
 	return 0;
