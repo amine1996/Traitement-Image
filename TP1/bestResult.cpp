@@ -129,10 +129,10 @@ void evaluation(Mat userDetectionMat, Mat realDetectionMat, double &r_, double &
 						int rowPadding = (k % 3) - 1;
 						int colPadding = (k / 3) - 1;
 
-						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
+						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.cols - 1)
 							continue;
 
-						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
+						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.rows - 1)
 							continue;
 
 						realPixel = realDetectionDataPtr[realDetectionMat.step * (j + rowPadding) + (i + colPadding)];
@@ -158,10 +158,10 @@ void evaluation(Mat userDetectionMat, Mat realDetectionMat, double &r_, double &
 						int colPadding = (k / 3) - 1;
 
 						//std::cout << j << "+" << rowPadding << " x " << i << "+" << colPadding << std::endl;
-						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.rows - 1)
+						if (colPadding == -1 && i == 0 || colPadding == 1 && i == userDetectionMat.cols - 1)
 							continue;
 
-						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.cols - 1)
+						if (rowPadding == -1 && j == 0 || rowPadding == 1 && j == userDetectionMat.rows - 1)
 							continue;
 
 						userPixel = userDetectionDataPtr[userDetectionMat.step * (j + rowPadding) + (i + colPadding)];
