@@ -22,12 +22,10 @@ include_directories (${CMAKE_CURRENT_BINARY_DIR})
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
 
-add_executable (seuilGris
-  seuilGris.cpp
+add_executable (hough
+   hough.cpp
 )
 
-
-target_link_libraries (seuilGris	
-  ${OpenCV_LIBS}
+target_link_libraries (hough
+   ${OpenCV_LIBS}
 )
-
