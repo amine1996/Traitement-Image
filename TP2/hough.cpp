@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 {
 	if (argc < 3)
 	{
-		cout << "Utilisation : ./hough image_entree image_sortie (-g)" << std::endl;
+		cout << "Utilisation : ./hough image_entree image_sortie (-g)" << endl;
 		return -1;
 	}
 
@@ -86,26 +86,36 @@ int main(int argc, char **argv)
 
 	if (!grayscaleInput.data || !originalPic.data) // Check for invalid input
 	{
-		cout << "Could not open or find the image" << std::endl;
+		cout << "Could not open or find the image" << endl;
 		return -1;
 	}
-
+	cout << "Enter the number of splits: 1" << endl;
 	sobel_ = sobel(grayscaleInput, gaussian);
 
 	imshow("titre", sobel_);
 
+	float rowMin = 1;
+	float rowMax = 100;
 	float rowStep = 1;
+
+	float colMin = 1;
+	float colMax = 100;
 	float colStep = 1;
+
+	float radMin = 5;
+	float radMax = 100;
 	float radStep = 1;
 
-	int radMin = 5;
-	int radMax = 100;
+	cout << " 2" << endl;
 
-	int rowSize = ceil(sobel_.rows / rowStep);
-	int colSize = ceil(sobel_.cols / colStep);
-	int radSize = ceil((radMin - radMax) / radStep);
 
-	float[rowSize][colSize][radSize] acc;
+	int const rowSize = ceil((rowMax - (rowMin-1)) / rowStep);
+	int const colSize = ceil((colMax - (colMin-1)) / colStep);
+	int const radSize = ceil((radMax - (radMin-1)) / radStep);
+	cout << "rowSize = " << rowSize << " colSize = " << colSize << " radSize = " << radSize << endl;
+
+	float acc[rowSize][colSize][radSize];
+	//cout << "3" << endl;
 
 	for (int i = 0; i < rowSize; i++)
 	{
@@ -117,6 +127,11 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	waitKey(0);
+
+	//cout << "a = test" << endl;
+	int a = 0, b = 0;
+	int tmprad =0;
 
 	for (int i = 0; i < sobel_.rows; i++)
 	{
@@ -124,11 +139,18 @@ int main(int argc, char **argv)
 		{
 			if (sobel_.at<uchar>(i, j) == 255)
 			{
-				for (int rad = radMin; rad < radMax; rad += radStep)
+				for (int rad = radMin; rad <= radMax; rad += radStep)
 				{
 					for (int angle = 0; angle < 360; angle++)
 					{
 						//https://en.wikipedia.org/wiki/Circle_Hough_Transform
+						a = ceil(i - rad * cos(angle * M_PI / 180));
+						b = ceil(j - rad * sin(angle * M_PI / 180));
+						if(a>=rowMin-1 && b >=colMin-1 && a < rowMax && b < colMax){							
+							tmprad = (rad - radMin) / radStep;
+							acc[a][b][tmprad] += 1.0/rad;
+						}
+							
 					}
 				}
 			}
@@ -136,7 +158,23 @@ int main(int argc, char **argv)
 	}
 	//Test and selection of the best threshold
 
-	imwrite(output, result);
+
+	for (int k = 0; k < radSize; k++)
+	{
+		for (int j = 0; j < colSize; j++)
+		{
+			for (int i = 0; i < rowSize; i++)
+			{
+				cout << "(" << i << "; "<< j << "; " << k <<") " << acc[i][j][k] << endl;
+
+				
+			}
+		}
+	}
+
+	
+	cout << "FIN" << endl;
+	//imwrite(output, result);
 
 	waitKey(0);
 	return 0;
