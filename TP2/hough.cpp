@@ -8,13 +8,13 @@
 using namespace std;
 using namespace cv;
 
-#define NB_CIRCLES 4
+#define NB_CIRCLES 5
 
 #define ROW_STEP 1
 #define COL_STEP 1
 #define RAD_STEP 1
 
-#define RAD_MIN 10
+#define RAD_MIN 7
 #define RAD_MAX 100
 
 /**
@@ -122,46 +122,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	/*
-	int r = 31;
-	int c = 31;
-	int rad = 14;
-	int cubeSize = 1;
-	int rowSize = 100;
-	int colSize = 100;
-	int radSize = 100;
-
-	for (int i = r - 1; i <= r + 1; i++)
-	{
-		if (i < 0)
-			continue;
-
-		if (i >= rowSize)
-			break;
-
-		for (int j = c - cubeSize; j <= c + cubeSize; j++)
-		{
-			if (j < 0)
-				continue;
-
-			if (j >= colSize)
-				break;
-
-			for (int k = rad - cubeSize; k <= rad + cubeSize; k++)
-			{
-				if (k < 0)
-					continue;
-
-				if (k >= radSize)
-					break;
-
-				/*if (i != r && j != c && k != rad)
-					acc[i][j][k] = 0;
-				std::cout << "i=" << i << " j=" << j << " k=" << k << endl;
-			}
-		}
-	}*/
-
 	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
 
@@ -175,13 +135,10 @@ int main(int argc, char **argv)
 		cout << "Could not open or find the image" << endl;
 		return -1;
 	}
-	cout << "Enter the number of splits: 1" << endl;
+
 	sobel_ = sobel(grayscaleInput, gaussian);
 
-	imshow("titre", sobel_);
-	//erode(sobel_, sobel_, Mat());
-	//imshow("titre2", sobel_);
-	//waitKey(0);
+	imshow("Sobel", sobel_);
 
 	float rowMin = 1;
 	float rowMax = sobel_.rows;
@@ -198,10 +155,10 @@ int main(int argc, char **argv)
 	int const rowSize = ceil((rowMax - (rowMin - 1)) / rowStep);
 	int const colSize = ceil((colMax - (colMin - 1)) / colStep);
 	int const radSize = ceil((radMax - (radMin - 1)) / radStep);
-	cout << "rowSize = " << rowSize << " colSize = " << colSize << " radSize = " << radSize << endl;
 
 	float acc[rowSize][colSize][radSize];
 
+	//Filling accumulator with 0
 	for (int i = 0; i < rowSize; i++)
 	{
 		for (int j = 0; j < colSize; j++)
@@ -216,24 +173,28 @@ int main(int argc, char **argv)
 	int a = 0, b = 0;
 	int tmprad = 0;
 
+	//Voting for circles
 	for (int row = 0; row < sobel_.rows; row++)
 	{
 		for (int col = 0; col < sobel_.cols; col++)
 		{
 			if (sobel_.at<uchar>(row, col) == 255)
 			{
+				//For all circles size within radMin and radMax
 				for (int rad = radMin; rad <= radMax; rad += radStep)
 				{
+					//For all angles
 					for (int angle = 0; angle < 360; angle++)
 					{
-						//https://en.wikipedia.org/wiki/Circle_Hough_Transform
+						//Center of the circle
 						a = ceil(col - rad * cos(angle * M_PI / 180)) / colStep;
 						b = ceil(row - rad * sin(angle * M_PI / 180)) / rowStep;
+
+						//If within the accumulator size increment
 						if (a >= 0 && b >= 0 && a < rowSize && b < colSize)
 						{
-							//std::cout << "a=" << a << " b=" << b << endl;
 							tmprad = (rad - radMin) / radStep;
-							acc[a][b][tmprad] += 1.0;
+							acc[a][b][tmprad] += 1;
 						}
 					}
 				}
@@ -245,18 +206,25 @@ int main(int argc, char **argv)
 	bool isMax = true;
 
 	vector<localMax> localMaxs;
-	int cubeSize = 2;
+
+	//cubeSize is the size for the field of search of local maximas (1 is 3x3x3)
+	int cubeSize = 1;
 	for (int r = 0; r < rowSize; r++)
 	{
 		for (int c = 0; c < colSize; c++)
 		{
 			for (int rad = 0; rad < radSize; rad++)
 			{
+				//If there is vote for a circle
 				if (acc[r][c][rad] != 0)
 				{
+					//Number of votes for the circle
 					max = acc[r][c][rad];
+
+					//By default is a local max
 					isMax = true;
 
+					//Looking for circles of size rad within the cube
 					for (int i = r - cubeSize; i <= r + cubeSize && isMax; i++)
 					{
 						if (i < 0)
@@ -281,6 +249,7 @@ int main(int argc, char **argv)
 								if (k >= radSize)
 									break;
 
+								//If a circle has more votes
 								if (acc[i][j][k] > max)
 								{
 									isMax = false;
@@ -290,6 +259,7 @@ int main(int argc, char **argv)
 						}
 					}
 
+					//If the circle is a local max, clean its neighbors
 					if (isMax)
 					{
 						for (int i = r - cubeSize; i <= r + cubeSize; i++)
@@ -325,6 +295,7 @@ int main(int argc, char **argv)
 							}
 						}
 
+						//Adding the local max to a vector
 						localMax tmpMax;
 						tmpMax.r = r;
 						tmpMax.c = c;
@@ -337,27 +308,27 @@ int main(int argc, char **argv)
 		}
 	}
 
+	//Sorting the local maxs by votes
 	sort(localMaxs.begin(), localMaxs.end());
 
 	int nbCircles = NB_CIRCLES;
 	if (localMaxs.size() < nbCircles)
 		nbCircles = localMaxs.size() - 1;
 
+	//Geting the nbCircles circles with most votes
 	vector<localMax> bestMax(localMaxs.end() - nbCircles, localMaxs.end());
 
 	for (int i = 0; i < bestMax.size(); i++)
 	{
-
 		float newRad = ((bestMax.at(i).rad + (radMin - 1)) * radStep);
 		int newRow = ((bestMax.at(i).r + (rowMin - 1)) * rowStep);
 		int newCol = ((bestMax.at(i).c + (colMin - 1)) * colStep);
-		cout << bestMax.at(i).r << " " << bestMax.at(i).c << " " << bestMax.at(i).rad << " " << bestMax.at(i).val << endl;
+
+		//Draw a circle
 		circle(originalPic, Point(newRow, newCol), newRad, Scalar(0, 0, 255), 1, LINE_8, 0);
 	}
 
-	imshow("salut", originalPic);
-
-	cout << "FIN" << endl;
+	imshow("Circles", originalPic);
 
 	waitKey(0);
 	return 0;
