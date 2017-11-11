@@ -4,6 +4,7 @@
 #include <math.h>
 #include <vector>
 #include <algorithm>
+#include <time.h>
 
 using namespace std;
 using namespace cv;
@@ -64,8 +65,6 @@ Mat sobel(Mat grayscaleInput, bool gaussian)
 		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(5, 5), 0, 0, BORDER_DEFAULT);
 	}
 
-	imshow("lol", grayscaleCopy);
-
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
 	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
 	Mat grady(grayscaleCopy.size(), grayscaleCopy.type());
@@ -113,6 +112,8 @@ int main(int argc, char **argv)
 	const char *output = argv[2];
 
 	bool gaussian = false;
+
+	//If the 4th argument is -g, apply a gaussian blur
 	if (argc == 4)
 	{
 		string arg = argv[3];
@@ -121,6 +122,8 @@ int main(int argc, char **argv)
 			gaussian = true;
 		}
 	}
+
+	clock_t start = clock();
 
 	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
@@ -328,8 +331,17 @@ int main(int argc, char **argv)
 		circle(originalPic, Point(newRow, newCol), newRad, Scalar(0, 0, 255), 1, LINE_8, 0);
 	}
 
+	clock_t end = clock();
+
 	imshow("Circles", originalPic);
 
+	std::cout << "Execution time : " << (((float)(end - start)) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
 	waitKey(0);
 	return 0;
 }
+
+//Trouver le bon rapport entre la taille du cercle et l'importance du vote
+//Enlever le bruit correctement avec opencv
+//coins2.png trop grande, il faudrait réduire la taille de l'image, chercher les cercles et placer les cercles au bon endroit
+//Flou fonctionnant pour toutes les images
+//Ne pas garder les cercles dans la meme zone
