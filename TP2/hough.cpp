@@ -8,6 +8,15 @@
 using namespace std;
 using namespace cv;
 
+#define NB_CIRCLES 4
+
+#define ROW_STEP 1
+#define COL_STEP 1
+#define RAD_STEP 1
+
+#define RAD_MIN 10
+#define RAD_MAX 100
+
 /**
  *Sobel Function 
  */
@@ -51,9 +60,11 @@ Mat sobel(Mat grayscaleInput, bool gaussian)
 
 	if (gaussian)
 	{
-		fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 10);
-		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(7, 5), 0, 0, BORDER_DEFAULT);
+		fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 50);
+		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(5, 5), 0, 0, BORDER_DEFAULT);
 	}
+
+	imshow("lol", grayscaleCopy);
 
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
 	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
@@ -104,11 +115,52 @@ int main(int argc, char **argv)
 	bool gaussian = false;
 	if (argc == 4)
 	{
-		if (argv[3] == "-g")
+		string arg = argv[3];
+		if (arg == "-g")
 		{
 			gaussian = true;
 		}
 	}
+
+	/*
+	int r = 31;
+	int c = 31;
+	int rad = 14;
+	int cubeSize = 1;
+	int rowSize = 100;
+	int colSize = 100;
+	int radSize = 100;
+
+	for (int i = r - 1; i <= r + 1; i++)
+	{
+		if (i < 0)
+			continue;
+
+		if (i >= rowSize)
+			break;
+
+		for (int j = c - cubeSize; j <= c + cubeSize; j++)
+		{
+			if (j < 0)
+				continue;
+
+			if (j >= colSize)
+				break;
+
+			for (int k = rad - cubeSize; k <= rad + cubeSize; k++)
+			{
+				if (k < 0)
+					continue;
+
+				if (k >= radSize)
+					break;
+
+				/*if (i != r && j != c && k != rad)
+					acc[i][j][k] = 0;
+				std::cout << "i=" << i << " j=" << j << " k=" << k << endl;
+			}
+		}
+	}*/
 
 	Mat originalPic = imread(input, CV_LOAD_IMAGE_COLOR);
 	Mat grayscaleInput = imread(input, CV_LOAD_IMAGE_GRAYSCALE);
@@ -127,22 +179,21 @@ int main(int argc, char **argv)
 	sobel_ = sobel(grayscaleInput, gaussian);
 
 	imshow("titre", sobel_);
-	erode(sobel_, sobel_, Mat(1, 1, 1));
-	imshow("titre2", sobel_);
+	//erode(sobel_, sobel_, Mat());
+	//imshow("titre2", sobel_);
+	//waitKey(0);
 
 	float rowMin = 1;
 	float rowMax = sobel_.rows;
-	float rowStep = 5;
+	float rowStep = ROW_STEP;
 
 	float colMin = 1;
 	float colMax = sobel_.cols;
-	float colStep = 5;
+	float colStep = COL_STEP;
 
-	float radMin = 5;
-	float radMax = 100;
-	float radStep = 1;
-
-	cout << " 2" << endl;
+	float radMin = RAD_MIN;
+	float radMax = RAD_MAX;
+	float radStep = RAD_STEP;
 
 	int const rowSize = ceil((rowMax - (rowMin - 1)) / rowStep);
 	int const colSize = ceil((colMax - (colMin - 1)) / colStep);
@@ -194,7 +245,7 @@ int main(int argc, char **argv)
 	bool isMax = true;
 
 	vector<localMax> localMaxs;
-	int cubeSize = 1;
+	int cubeSize = 2;
 	for (int r = 0; r < rowSize; r++)
 	{
 		for (int c = 0; c < colSize; c++)
@@ -241,7 +292,7 @@ int main(int argc, char **argv)
 
 					if (isMax)
 					{
-						for (int i = r - cubeSize; i <= r + cubeSize && isMax; i++)
+						for (int i = r - cubeSize; i <= r + cubeSize; i++)
 						{
 							if (i < 0)
 								continue;
@@ -249,7 +300,7 @@ int main(int argc, char **argv)
 							if (i >= rowSize)
 								break;
 
-							for (int j = c - cubeSize; j <= c + cubeSize && isMax; j++)
+							for (int j = c - cubeSize; j <= c + cubeSize; j++)
 							{
 								if (j < 0)
 									continue;
@@ -257,16 +308,19 @@ int main(int argc, char **argv)
 								if (j >= colSize)
 									break;
 
-								for (int k = rad - cubeSize; k <= rad + cubeSize && isMax; k++)
+								for (int k = rad - cubeSize; k <= rad + cubeSize; k++)
 								{
+
+									if (i == r && j == c && k == rad)
+										continue;
+
 									if (k < 0)
 										continue;
 
 									if (k >= radSize)
 										break;
 
-									if (i != r && j != c && k != rad)
-										acc[i][j][k] = 0;
+									acc[i][j][k] = 0;
 								}
 							}
 						}
@@ -285,7 +339,11 @@ int main(int argc, char **argv)
 
 	sort(localMaxs.begin(), localMaxs.end());
 
-	vector<localMax> bestMax(localMaxs.end() - 4, localMaxs.end());
+	int nbCircles = NB_CIRCLES;
+	if (localMaxs.size() < nbCircles)
+		nbCircles = localMaxs.size() - 1;
+
+	vector<localMax> bestMax(localMaxs.end() - nbCircles, localMaxs.end());
 
 	for (int i = 0; i < bestMax.size(); i++)
 	{
@@ -300,7 +358,6 @@ int main(int argc, char **argv)
 	imshow("salut", originalPic);
 
 	cout << "FIN" << endl;
-	//imwrite(output, result);
 
 	waitKey(0);
 	return 0;
