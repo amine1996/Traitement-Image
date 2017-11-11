@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
+#include <vector>
+#include <algorithm>
 
 using namespace std;
 using namespace cv;
@@ -9,15 +11,47 @@ using namespace cv;
 /**
  *Sobel Function 
  */
+
+struct localMax
+{
+	int r;
+	int c;
+	int rad;
+	float val;
+
+	bool operator<(localMax b)
+	{
+		return val < b.val;
+	}
+
+	bool operator>(localMax b)
+	{
+		return val > b.val;
+	}
+
+	bool operator==(localMax b)
+	{
+		return val == b.val;
+	}
+
+	bool operator>=(localMax b)
+	{
+		return val >= b.val;
+	}
+
+	bool operator<=(localMax b)
+	{
+		return val <= b.val;
+	}
+};
+
 Mat sobel(Mat grayscaleInput, bool gaussian)
 {
 	Mat grayscaleCopy = grayscaleInput.clone();
 
 	if (gaussian)
 	{
-		//Denoising the image before applying the sobel filter
 		fastNlMeansDenoising(grayscaleCopy, grayscaleCopy, 3, 7, 10);
-		//Denoising using a gaussian blur
 		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(7, 5), 0, 0, BORDER_DEFAULT);
 	}
 
@@ -93,14 +127,16 @@ int main(int argc, char **argv)
 	sobel_ = sobel(grayscaleInput, gaussian);
 
 	imshow("titre", sobel_);
+	erode(sobel_, sobel_, Mat(1, 1, 1));
+	imshow("titre2", sobel_);
 
 	float rowMin = 1;
-	float rowMax = 100;
-	float rowStep = 1;
+	float rowMax = sobel_.rows;
+	float rowStep = 5;
 
 	float colMin = 1;
-	float colMax = 100;
-	float colStep = 1;
+	float colMax = sobel_.cols;
+	float colStep = 5;
 
 	float radMin = 5;
 	float radMax = 100;
@@ -108,14 +144,12 @@ int main(int argc, char **argv)
 
 	cout << " 2" << endl;
 
-
-	int const rowSize = ceil((rowMax - (rowMin-1)) / rowStep);
-	int const colSize = ceil((colMax - (colMin-1)) / colStep);
-	int const radSize = ceil((radMax - (radMin-1)) / radStep);
+	int const rowSize = ceil((rowMax - (rowMin - 1)) / rowStep);
+	int const colSize = ceil((colMax - (colMin - 1)) / colStep);
+	int const radSize = ceil((radMax - (radMin - 1)) / radStep);
 	cout << "rowSize = " << rowSize << " colSize = " << colSize << " radSize = " << radSize << endl;
 
 	float acc[rowSize][colSize][radSize];
-	//cout << "3" << endl;
 
 	for (int i = 0; i < rowSize; i++)
 	{
@@ -127,52 +161,144 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	waitKey(0);
 
-	//cout << "a = test" << endl;
 	int a = 0, b = 0;
-	int tmprad =0;
+	int tmprad = 0;
 
-	for (int i = 0; i < sobel_.rows; i++)
+	for (int row = 0; row < sobel_.rows; row++)
 	{
-		for (int j = 0; j < sobel_.cols; j++)
+		for (int col = 0; col < sobel_.cols; col++)
 		{
-			if (sobel_.at<uchar>(i, j) == 255)
+			if (sobel_.at<uchar>(row, col) == 255)
 			{
 				for (int rad = radMin; rad <= radMax; rad += radStep)
 				{
 					for (int angle = 0; angle < 360; angle++)
 					{
 						//https://en.wikipedia.org/wiki/Circle_Hough_Transform
-						a = ceil(i - rad * cos(angle * M_PI / 180));
-						b = ceil(j - rad * sin(angle * M_PI / 180));
-						if(a>=rowMin-1 && b >=colMin-1 && a < rowMax && b < colMax){							
+						a = ceil(col - rad * cos(angle * M_PI / 180)) / colStep;
+						b = ceil(row - rad * sin(angle * M_PI / 180)) / rowStep;
+						if (a >= 0 && b >= 0 && a < rowSize && b < colSize)
+						{
+							//std::cout << "a=" << a << " b=" << b << endl;
 							tmprad = (rad - radMin) / radStep;
-							acc[a][b][tmprad] += 1.0/rad;
+							acc[a][b][tmprad] += 1.0;
 						}
-							
 					}
 				}
 			}
 		}
 	}
-	//Test and selection of the best threshold
 
+	float max = 0;
+	bool isMax = true;
 
-	for (int k = 0; k < radSize; k++)
+	vector<localMax> localMaxs;
+	int cubeSize = 1;
+	for (int r = 0; r < rowSize; r++)
 	{
-		for (int j = 0; j < colSize; j++)
+		for (int c = 0; c < colSize; c++)
 		{
-			for (int i = 0; i < rowSize; i++)
+			for (int rad = 0; rad < radSize; rad++)
 			{
-				cout << "(" << i << "; "<< j << "; " << k <<") " << acc[i][j][k] << endl;
+				if (acc[r][c][rad] != 0)
+				{
+					max = acc[r][c][rad];
+					isMax = true;
 
-				
+					for (int i = r - cubeSize; i <= r + cubeSize && isMax; i++)
+					{
+						if (i < 0)
+							continue;
+
+						if (i >= rowSize)
+							break;
+
+						for (int j = c - cubeSize; j <= c + cubeSize && isMax; j++)
+						{
+							if (j < 0)
+								continue;
+
+							if (j >= colSize)
+								break;
+
+							for (int k = rad - cubeSize; k <= rad + cubeSize && isMax; k++)
+							{
+								if (k < 0)
+									continue;
+
+								if (k >= radSize)
+									break;
+
+								if (acc[i][j][k] > max)
+								{
+									isMax = false;
+									break;
+								}
+							}
+						}
+					}
+
+					if (isMax)
+					{
+						for (int i = r - cubeSize; i <= r + cubeSize && isMax; i++)
+						{
+							if (i < 0)
+								continue;
+
+							if (i >= rowSize)
+								break;
+
+							for (int j = c - cubeSize; j <= c + cubeSize && isMax; j++)
+							{
+								if (j < 0)
+									continue;
+
+								if (j >= colSize)
+									break;
+
+								for (int k = rad - cubeSize; k <= rad + cubeSize && isMax; k++)
+								{
+									if (k < 0)
+										continue;
+
+									if (k >= radSize)
+										break;
+
+									if (i != r && j != c && k != rad)
+										acc[i][j][k] = 0;
+								}
+							}
+						}
+
+						localMax tmpMax;
+						tmpMax.r = r;
+						tmpMax.c = c;
+						tmpMax.rad = rad;
+						tmpMax.val = max;
+						localMaxs.push_back(tmpMax);
+					}
+				}
 			}
 		}
 	}
 
-	
+	sort(localMaxs.begin(), localMaxs.end());
+
+	vector<localMax> bestMax(localMaxs.end() - 4, localMaxs.end());
+
+	for (int i = 0; i < bestMax.size(); i++)
+	{
+
+		float newRad = ((bestMax.at(i).rad + (radMin - 1)) * radStep);
+		int newRow = ((bestMax.at(i).r + (rowMin - 1)) * rowStep);
+		int newCol = ((bestMax.at(i).c + (colMin - 1)) * colStep);
+		cout << bestMax.at(i).r << " " << bestMax.at(i).c << " " << bestMax.at(i).rad << " " << bestMax.at(i).val << endl;
+		circle(originalPic, Point(newRow, newCol), newRad, Scalar(0, 0, 255), 1, LINE_8, 0);
+	}
+
+	imshow("salut", originalPic);
+
 	cout << "FIN" << endl;
 	//imwrite(output, result);
 
