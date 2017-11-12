@@ -64,8 +64,6 @@ Mat sobel(Mat grayscaleInput, bool gaussian)
 	if (gaussian)
 		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(9, 9), 0, 0);
 
-	imshow("sdfsdsd", grayscaleCopy);
-
 	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
 	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
 	Mat grady(grayscaleCopy.size(), grayscaleCopy.type());
@@ -143,9 +141,7 @@ int main(int argc, char **argv)
 										Size(2 * erosion_size + 1, 2 * erosion_size + 1),
 										Point(erosion_size, erosion_size));
 	erode(sobel_, sobel_, element);
-	imshow("Sobel", sobel_);
-
-	waitKey(0);
+	imshow("Sobel and erode", sobel_);
 
 	float rowMin = 1;
 	float rowMax = sobel_.rows;
@@ -163,7 +159,6 @@ int main(int argc, char **argv)
 	int const colSize = ceil((colMax - (colMin - 1)) / colStep);
 	int const radSize = ceil((radMax - (radMin - 1)) / radStep);
 
-	//float acc[rowSize][colSize][radSize];
 	vector<vector<vector<float>>> acc(rowSize, vector<vector<float>>(colSize, vector<float>(radSize, 0)));
 
 	//Filling accumulator with 0
@@ -319,14 +314,14 @@ int main(int argc, char **argv)
 	//Sorting the local maxs by votes
 	sort(localMaxs.begin(), localMaxs.end());
 
-	int nbCircles = NB_CIRCLES;
+	unsigned int nbCircles = NB_CIRCLES;
 	if (localMaxs.size() < nbCircles)
 		nbCircles = localMaxs.size() - 1;
 
 	//Geting the nbCircles circles with most votes
 	vector<localMax> bestMax(localMaxs.end() - nbCircles, localMaxs.end());
 
-	for (int i = 0; i < bestMax.size(); i++)
+	for (unsigned int i = 0; i < bestMax.size(); i++)
 	{
 		float newRad = ((bestMax.at(i).rad + (radMin - 1)) * radStep);
 		int newRow = ((bestMax.at(i).r + (rowMin - 1)) * rowStep);
@@ -341,82 +336,9 @@ int main(int argc, char **argv)
 	imshow("Circles", originalPic);
 
 	std::cout << "Execution time : " << (((float)(end - start)) / CLOCKS_PER_SEC) * 1000 << "ms" << std::endl;
+	std::cout << "Number of ticks : " << (end - start) << std::endl;
+
 	imwrite(output, originalPic);
 	waitKey(0);
 	return 0;
 }
-
-//Trouver le bon rapport entre la taille du cercle et l'importance du vote
-//Enlever le bruit correctement avec opencv
-//coins2.png trop grande, il faudrait réduire la taille de l'image, chercher les cercles et placer les cercles au bon endroit
-//    => Remplacement d'un tableau statique par un vecteur corrige ce probleme
-//Flou fonctionnant pour toutes les images
-//Ne pas garder les cercles dans la meme zone
-//Obligé de jouer sur la taille min du radius en fonction des images
-
-/*
-coins2
-10265.1ms
-#define NB_CIRCLES 8
-#define SEARCH_CUBE_SIZE 10
-#define EROSION_SIZE 1
-
-#define ROW_STEP 2
-#define COL_STEP 2
-#define RAD_STEP 1
-
-#define RAD_MIN 50
-#define RAD_MAX 100
-
-coins
-271.738ms
-#define NB_CIRCLES 2
-#define SEARCH_CUBE_SIZE 6
-#define EROSION_SIZE 1
-
-#define ROW_STEP 1
-#define COL_STEP 1
-#define RAD_STEP 1
-
-#define RAD_MIN 15
-#define RAD_MAX 30
-
-four
-319.414ms
-#define NB_CIRCLES 5
-#define SEARCH_CUBE_SIZE 3
-#define EROSION_SIZE 1
-
-#define ROW_STEP 1
-#define COL_STEP 1
-#define RAD_STEP 1
-
-#define RAD_MIN 7
-#define RAD_MAX 30
-
-fourn
-820.599ms
-#define NB_CIRCLES 5
-#define SEARCH_CUBE_SIZE 3
-#define EROSION_SIZE 0
-
-#define ROW_STEP 1
-#define COL_STEP 1
-#define RAD_STEP 1
-
-#define RAD_MIN 7
-#define RAD_MAX 30
-
-#MoonCoin
-236.365ms
-#define NB_CIRCLES 2
-#define SEARCH_CUBE_SIZE 1
-#define EROSION_SIZE 1
-
-#define ROW_STEP 1
-#define COL_STEP 1
-#define RAD_STEP 1
-
-#define RAD_MIN 7
-#define RAD_MAX 25
-*/

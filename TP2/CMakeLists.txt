@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 project (modeleProj)
 add_definitions("-DPROJECT_DIRECTORY=\"${PROJECT_SOURCE_DIR}\"")
-set (CMAKE_CXX_FLAGS_RELEASE " -O3 -DNDEBUG -ggdb -Wall -Wextra")
+set (CMAKE_CXX_FLAGS_RELEASE " -O3 -DNDEBUG -ggdb -Wall -std=c++11 -Wextra")
 
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
