@@ -29,3 +29,11 @@ add_executable (hough
 target_link_libraries (hough
    ${OpenCV_LIBS}
 )
+
+add_executable (fastHough
+   fastHough.cpp
+)
+
+target_link_libraries (fastHough
+   ${OpenCV_LIBS}
+)

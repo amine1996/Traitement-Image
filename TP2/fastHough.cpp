@@ -9,16 +9,16 @@
 using namespace std;
 using namespace cv;
 
-#define NB_CIRCLES 8
-#define SEARCH_CUBE_SIZE 10
+#define NB_CIRCLES 2
+#define SEARCH_CUBE_SIZE 6
 #define EROSION_SIZE 1
 
-#define ROW_STEP 2
-#define COL_STEP 2
+#define ROW_STEP 1
+#define COL_STEP 1
 #define RAD_STEP 1
 
-#define RAD_MIN 50
-#define RAD_MAX 100
+#define RAD_MIN 15
+#define RAD_MAX 30
 
 /**
  *Sobel Function 
@@ -56,40 +56,6 @@ struct localMax
 		return val <= b.val;
 	}
 };
-
-Mat sobel(Mat grayscaleInput, bool gaussian)
-{
-	Mat grayscaleCopy = grayscaleInput.clone();
-
-	if (gaussian)
-		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(9, 9), 0, 0);
-
-	imshow("sdfsdsd", grayscaleCopy);
-
-	Mat output(grayscaleCopy.size(), grayscaleCopy.type());
-	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
-	Mat grady(grayscaleCopy.size(), grayscaleCopy.type());
-
-	Sobel(grayscaleCopy, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-	Sobel(grayscaleCopy, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
-
-	double max = 0;
-	for (int i = 0; i < grayscaleCopy.rows; i++)
-	{
-		for (int j = 0; j < grayscaleCopy.cols; j++)
-		{
-			uchar value = (uchar)round(sqrt(pow(gradx.at<uchar>(i, j), 2) + pow(grady.at<uchar>(i, j), 2)));
-			output.at<uchar>(i, j) = value;
-			if (max < value)
-				max = value;
-		}
-	}
-
-	max /= 4;
-	threshold(output, output, max, 255, THRESH_BINARY);
-
-	return output;
-}
 
 /**
  *Grey scale Function 
@@ -136,7 +102,36 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	sobel_ = sobel(grayscaleInput, gaussian);
+	//Sobel out to have access to gradx and grady
+	Mat grayscaleCopy = grayscaleInput.clone();
+
+	if (gaussian)
+		GaussianBlur(grayscaleCopy, grayscaleCopy, Size(9, 9), 0, 0);
+
+	Mat grad(grayscaleCopy.size(), grayscaleCopy.type());
+	Mat gradx(grayscaleCopy.size(), grayscaleCopy.type());
+	Mat grady(grayscaleCopy.size(), grayscaleCopy.type());
+
+	Sobel(grayscaleCopy, gradx, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(grayscaleCopy, grady, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+
+	double maxval = 0;
+	for (int i = 0; i < grayscaleCopy.rows; i++)
+	{
+		for (int j = 0; j < grayscaleCopy.cols; j++)
+		{
+			uchar value = (uchar)round(sqrt(pow(gradx.at<uchar>(i, j), 2) + pow(grady.at<uchar>(i, j), 2)));
+			grad.at<uchar>(i, j) = value;
+			if (maxval < value)
+				maxval = value;
+		}
+	}
+	maxval /= 4;
+
+	imshow("grad", grad);
+	waitKey(0);
+	threshold(grad, sobel_, maxval, 255, THRESH_BINARY);
+	//Sobel end
 
 	int erosion_size = EROSION_SIZE;
 	Mat element = getStructuringElement(MORPH_ELLIPSE,
@@ -182,7 +177,13 @@ int main(int argc, char **argv)
 	int tmprad = 0;
 
 	//Voting for circles
-	for (int row = 0; row < sobel_.rows; row++)
+
+	/*Mat degrees(gradx.size(), gradx.type());
+	std::cout << gradx.size() << " " << grady.size() << " " << degrees.size() << endl;
+	phase(gradx, grady, degrees, true);
+	std::cout << "after" << endl;
+	
+	*/ for (int row = 0; row < sobel_.rows; row++)
 	{
 		for (int col = 0; col < sobel_.cols; col++)
 		{
@@ -191,8 +192,31 @@ int main(int argc, char **argv)
 				//For all circles size within radMin and radMax
 				for (int rad = radMin; rad <= radMax; rad += radStep)
 				{
-					//For all angles
-					for (int angle = 0; angle < 360; angle++)
+					//Using gradient direction to restrain the angle
+					float degree = fastAtan2(grady.at<uchar>(row, col), gradx.at<uchar>(row, col)) * 180 / M_PI;
+					float degreeMin = degree - 20;
+					float degreeMax = fmod((degree + 20), 360);
+					if (degreeMin < 0)
+						degreeMin += 360;
+					degreeMin = fmod(degreeMin, 360);
+
+					//Looking for angles 20 degrees apart from the gradient direction
+					for (int angle = degreeMin; angle < degreeMax; angle++)
+					{
+						//Center of the circle
+						a = ceil(col - rad * cos(angle * M_PI / 180)) / colStep;
+						b = ceil(row - rad * sin(angle * M_PI / 180)) / rowStep;
+
+						//If within the accumulator size increment
+						if (a >= 0 && b >= 0 && a < rowSize && b < colSize)
+						{
+							tmprad = (rad - radMin) / radStep;
+							acc[a][b][tmprad] += 1;
+						}
+					}
+
+					//Looking in the other way of the direction
+					for (int angle = fmod(degreeMin + 180, 360); angle < fmod(degreeMax + 180, 360); angle++)
 					{
 						//Center of the circle
 						a = ceil(col - rad * cos(angle * M_PI / 180)) / colStep;
@@ -319,6 +343,7 @@ int main(int argc, char **argv)
 	//Sorting the local maxs by votes
 	sort(localMaxs.begin(), localMaxs.end());
 
+	std::cout << localMaxs.size() << endl;
 	int nbCircles = NB_CIRCLES;
 	if (localMaxs.size() < nbCircles)
 		nbCircles = localMaxs.size() - 1;
@@ -356,7 +381,7 @@ int main(int argc, char **argv)
 
 /*
 coins2
-10265.1ms
+2792.2ms
 #define NB_CIRCLES 8
 #define SEARCH_CUBE_SIZE 10
 #define EROSION_SIZE 1
@@ -369,7 +394,7 @@ coins2
 #define RAD_MAX 100
 
 coins
-271.738ms
+152.662ms
 #define NB_CIRCLES 2
 #define SEARCH_CUBE_SIZE 6
 #define EROSION_SIZE 1
@@ -382,7 +407,7 @@ coins
 #define RAD_MAX 30
 
 four
-319.414ms
+226.56ms
 #define NB_CIRCLES 5
 #define SEARCH_CUBE_SIZE 3
 #define EROSION_SIZE 1
@@ -395,7 +420,7 @@ four
 #define RAD_MAX 30
 
 fourn
-820.599ms
+310.487ms
 #define NB_CIRCLES 5
 #define SEARCH_CUBE_SIZE 3
 #define EROSION_SIZE 0
@@ -408,7 +433,7 @@ fourn
 #define RAD_MAX 30
 
 #MoonCoin
-236.365ms
+135.068ms
 #define NB_CIRCLES 2
 #define SEARCH_CUBE_SIZE 1
 #define EROSION_SIZE 1
