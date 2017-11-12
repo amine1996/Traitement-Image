@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 		int newCol = ((bestMax.at(i).c + (colMin - 1)) * colStep);
 
 		//Draw a circle
-		circle(originalPic, Point(newRow, newCol), newRad, Scalar(0, 0, 255), 1, LINE_8, 0);
+		circle(originalPic, Point(newRow, newCol), newRad, Scalar(0, 0, 255), 1, 8, 0);
 	}
 
 	clock_t end = clock();
