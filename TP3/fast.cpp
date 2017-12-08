@@ -10,7 +10,8 @@ using namespace cv;
 struct cornerPoint
 {
 	Point point;
-	bool matched;
+	int meanPatch;
+	int matchedScore;
 };
 
 vector<cornerPoint> getCorners(Mat grayscalePic)
@@ -32,7 +33,7 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 			int deltaY;
 
 			//Delta to be brighter/darker than the point of interest
-			int deltaVal = 15;
+			int deltaVal = 50;
 
 			//Number of contiguous brighter pixels
 			int nbContiguousBrighter = 0;
@@ -41,7 +42,7 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 			int nbContiguousDarker = 0;
 
 			//Number of needed contiguous pixels to be a corner
-			const int neededContiguous = 12;
+			const int neededContiguous = 9;
 
 			//Looking for a circle and a half around the point of interest
 			for (unsigned int k = 0; k < vecDeltaX.size() + 8; k++)
@@ -77,7 +78,7 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 				//Save the pixel as a corner
 				if (nbContiguousBrighter >= neededContiguous || nbContiguousDarker >= neededContiguous)
 				{
-					cornerPoint cp = {Point(col, row), false};
+					cornerPoint cp = {Point(col, row), 0, INT_MAX};
 					vecCorners.push_back(cp);
 
 					break;
@@ -85,6 +86,7 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 			}
 		}
 	}
+
 	return vecCorners;
 }
 
@@ -97,6 +99,34 @@ Mat drawCorners(Mat pic, vector<cornerPoint> corners)
 		circle(picWithCorners, corner, 1, Scalar(0, 0, 255), 1, 8, 0);
 	}
 	return picWithCorners;
+}
+
+void setPatchMeans(vector<cornerPoint> *myCorners, Mat pic)
+{
+	for (unsigned int i = 0; i < myCorners->size(); i++)
+	{
+		Point pixel = myCorners->at(i).point;
+
+		int meanPatch = 0;
+		int nbPixel = 0;
+		for (int k = -1; k <= 1; k++)
+		{
+			if (pixel.x + k >= pic.cols || pixel.x + k < 0)
+				continue;
+
+			for (int m = -1; m <= 1; m++)
+			{
+				if (pixel.y + m >= pic.rows || pixel.y + m < 0)
+					continue;
+
+				++nbPixel;
+
+				meanPatch += pic.at<uchar>(pixel.y + k, pixel.x + m);
+			}
+		}
+
+		myCorners->at(i).meanPatch = (uchar)meanPatch / nbPixel;
+	}
 }
 
 int main(int argc, char **argv)
@@ -113,12 +143,15 @@ int main(int argc, char **argv)
 	vector<Mat> picWithCircles;
 	vector<Mat> grayscalePictures;
 
+	//Read pictures given in parameter
 	Mat firstOriginalPic = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 	Mat secondOriginalPic = imread(argv[2], CV_LOAD_IMAGE_COLOR);
 
+	//Create grayscale pictures from images given in parameter
 	Mat firstGrayscalePic = imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
 	Mat secondGrayscalePic = imread(argv[2], CV_LOAD_IMAGE_GRAYSCALE);
 
+	//Check for non existent images
 	for (unsigned int i = 0; i < originalPictures.size(); i++)
 	{
 		if (!originalPictures.at(i).data || !grayscalePictures.at(i).data) // Check for invalid input
@@ -128,31 +161,31 @@ int main(int argc, char **argv)
 		}
 	}
 
+	//Get corners for both pictures
 	vector<cornerPoint> cornersFirstPic = getCorners(firstGrayscalePic);
 	vector<cornerPoint> cornersSecondPic = getCorners(secondGrayscalePic);
 
+	//Draw corners on two pictures
 	Mat firstPicWithCorners = drawCorners(firstOriginalPic, cornersFirstPic);
 	Mat secondPicWithCorners = drawCorners(secondOriginalPic, cornersSecondPic);
 
-	//imshow("first", firstPicWithCorners);
-	//imshow("second", secondPicWithCorners);
-
-	//waitKey(0);
-
+	//Create image with two pics side to side
 	Mat bothOriginalPic(firstOriginalPic.rows + secondOriginalPic.rows, firstOriginalPic.cols + secondOriginalPic.cols, firstOriginalPic.type());
 	hconcat(firstOriginalPic, secondOriginalPic, bothOriginalPic);
 
+	//Create an image on which lines will be drawn
 	Mat joinedCorners;
 	joinedCorners = bothOriginalPic.clone();
 
-	vector<cornerPoint> salut;
+	//Set means for patch around corners
+	setPatchMeans(&cornersFirstPic, firstGrayscalePic);
+	setPatchMeans(&cornersSecondPic, secondGrayscalePic);
 
-	int c = 0;
 	for (unsigned int i = 0; i < cornersFirstPic.size(); i++)
 	{
 		Point comparedPixel = cornersFirstPic.at(i).point;
 
-		int bestPixelIndex = 0;
+		int bestPixelIndex = -1;
 		long int min = INT_MAX;
 
 		for (unsigned int j = 0; j < cornersSecondPic.size(); j++)
@@ -165,39 +198,28 @@ int main(int argc, char **argv)
 			//3x3 area around both pixels
 			for (int k = -1; k <= 1; k++)
 			{
-				if (comparedPixel.x + k >= firstGrayscalePic.rows || comparedPixel.x + k < 0)
+				if (comparedPixel.x + k >= firstGrayscalePic.cols || comparedPixel.x + k < 0)
 					continue;
 
-				if (pixelToCompare.x + k >= secondGrayscalePic.rows || pixelToCompare.x + k < 0)
+				if (pixelToCompare.x + k >= secondGrayscalePic.cols || pixelToCompare.x + k < 0)
 					continue;
 
 				for (int m = -1; m <= 1; m++)
 				{
-					if (comparedPixel.y + m >= firstGrayscalePic.cols || comparedPixel.y + m < 0)
+					//TODO : check les rows et cols et voir si les points sont bien comparés
+					if (comparedPixel.y + m >= firstGrayscalePic.rows || comparedPixel.y + m < 0)
 						continue;
 
-					if (pixelToCompare.y + m >= secondGrayscalePic.cols || pixelToCompare.y + m < 0)
+					if (pixelToCompare.y + m >= secondGrayscalePic.rows || pixelToCompare.y + m < 0)
 						continue;
 
-					if (k == 0 && m == 0)
-						continue;
-
-					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.x + k, comparedPixel.y + m);
-					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.x + k, pixelToCompare.y + m);
+					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.y + k, comparedPixel.x + m) - cornersFirstPic.at(i).meanPatch;
+					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.y + k, pixelToCompare.x + m) - cornersSecondPic.at(j).meanPatch;
 
 					SSD += (val1 - val2) * (val1 - val2);
-
-					/*cout << "Compared pixel : " << comparedPixel.x << "+" << k << "x" << comparedPixel.y << "+" << m << "| "
-						 << "PixelToCompare : " << pixelToCompare.x << "+" << k << "x" << comparedPixel.y << "+" << m << "| "
-						 << "SSD : " << SSD << endl;*/
 				}
 
-				/*if (SSD == 0)
-				{
-					salut.push_back(cornersSecondPic.at(j));
-				}*/
-
-				if (SSD < min && !cornersSecondPic.at(j).matched)
+				if (SSD < min && SSD < cornersFirstPic.at(i).matchedScore && SSD == 0)
 				{
 					min = SSD;
 					bestPixelIndex = j;
@@ -205,31 +227,22 @@ int main(int argc, char **argv)
 			}
 		}
 
-		//cout << salut.size() << endl;
-
-		if (!cornersSecondPic.at(bestPixelIndex).matched)
+		if (min < cornersFirstPic.at(i).matchedScore && bestPixelIndex != -1)
 		{
 			cout << min << endl;
-			/*cout << "min : " << min << endl;
-			cout << "compared " << comparedPixel.x << " " << comparedPixel.y << endl;
-			cout << "matched " << cornersSecondPic.at(bestPixelIndex).point.x << " " << cornersSecondPic.at(bestPixelIndex).point.y << endl;*/
-			cornersSecondPic.at(bestPixelIndex).matched = true;
+			cornersFirstPic.at(i).matchedScore = min;
 
-			Mat test;
-			line(joinedCorners, Point(comparedPixel.x, comparedPixel.y), Point(cornersSecondPic.at(bestPixelIndex).point.x + secondOriginalPic.cols, cornersSecondPic.at(bestPixelIndex).point.y), Scalar(0, 0, 255), 1);
-			//imshow("tamere", test);
-			//waitKey(0);
+			Mat test = joinedCorners.clone();
+			if (comparedPixel.x > 250)
+			{
+				line(test, Point(comparedPixel.x, comparedPixel.y), Point(cornersSecondPic.at(bestPixelIndex).point.x + secondOriginalPic.cols, cornersSecondPic.at(bestPixelIndex).point.y), Scalar(0, 0, 255), 1);
+				imshow("tamere", test);
+				waitKey(0);
+			}
 		}
 	}
 
 	imshow("Picture", joinedCorners);
-	waitKey(0);
-	// for (unsigned int i = 0; i < originalPictures.size(); i++)
-	// {
-	// 	imshow("Picture", originalPictures.at(i));
-	// 	waitKey(0);
-	// }
-
 	waitKey(0);
 
 	return 0;
