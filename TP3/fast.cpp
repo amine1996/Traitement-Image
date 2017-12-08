@@ -41,7 +41,7 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 			int nbContiguousDarker = 0;
 
 			//Number of needed contiguous pixels to be a corner
-			const int neededContiguous = 20;
+			const int neededContiguous = 12;
 
 			//Looking for a circle and a half around the point of interest
 			for (unsigned int k = 0; k < vecDeltaX.size() + 8; k++)
@@ -134,21 +134,33 @@ int main(int argc, char **argv)
 	Mat firstPicWithCorners = drawCorners(firstOriginalPic, cornersFirstPic);
 	Mat secondPicWithCorners = drawCorners(secondOriginalPic, cornersSecondPic);
 
+	//imshow("first", firstPicWithCorners);
+	//imshow("second", secondPicWithCorners);
+
+	//waitKey(0);
+
 	Mat bothOriginalPic(firstOriginalPic.rows + secondOriginalPic.rows, firstOriginalPic.cols + secondOriginalPic.cols, firstOriginalPic.type());
 	hconcat(firstOriginalPic, secondOriginalPic, bothOriginalPic);
+
+	Mat joinedCorners;
+	joinedCorners = bothOriginalPic.clone();
+
+	vector<cornerPoint> salut;
 
 	int c = 0;
 	for (unsigned int i = 0; i < cornersFirstPic.size(); i++)
 	{
 		Point comparedPixel = cornersFirstPic.at(i).point;
+
 		int bestPixelIndex = 0;
-		int min = INT_MAX;
+		long int min = INT_MAX;
+
 		for (unsigned int j = 0; j < cornersSecondPic.size(); j++)
 		{
 			Point pixelToCompare = cornersSecondPic.at(j).point;
 
 			//Looking for a 3x3 pixel around each corner
-			int SSD = 0;
+			long int SSD = 0;
 
 			//3x3 area around both pixels
 			for (int k = -1; k <= 1; k++)
@@ -167,30 +179,50 @@ int main(int argc, char **argv)
 					if (pixelToCompare.y + m >= secondGrayscalePic.cols || pixelToCompare.y + m < 0)
 						continue;
 
-					SSD += pow(firstGrayscalePic.at<uchar>(comparedPixel.x + k, comparedPixel.y + m) - secondGrayscalePic.at<uchar>(pixelToCompare.x + k, pixelToCompare.y + m), 2);
+					if (k == 0 && m == 0)
+						continue;
 
-					if (SSD < min && !cornersSecondPic.at(j).matched)
-					{
-						min = SSD;
-						bestPixelIndex = j;
-					}
+					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.x + k, comparedPixel.y + m);
+					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.x + k, pixelToCompare.y + m);
+
+					SSD += (val1 - val2) * (val1 - val2);
+
+					/*cout << "Compared pixel : " << comparedPixel.x << "+" << k << "x" << comparedPixel.y << "+" << m << "| "
+						 << "PixelToCompare : " << pixelToCompare.x << "+" << k << "x" << comparedPixel.y << "+" << m << "| "
+						 << "SSD : " << SSD << endl;*/
+				}
+
+				/*if (SSD == 0)
+				{
+					salut.push_back(cornersSecondPic.at(j));
+				}*/
+
+				if (SSD < min && !cornersSecondPic.at(j).matched)
+				{
+					min = SSD;
+					bestPixelIndex = j;
 				}
 			}
 		}
 
+		//cout << salut.size() << endl;
+
 		if (!cornersSecondPic.at(bestPixelIndex).matched)
 		{
+			cout << min << endl;
+			/*cout << "min : " << min << endl;
 			cout << "compared " << comparedPixel.x << " " << comparedPixel.y << endl;
-			cout << "matched " << cornersSecondPic.at(bestPixelIndex).point.x << " " << cornersSecondPic.at(bestPixelIndex).point.y << endl;
+			cout << "matched " << cornersSecondPic.at(bestPixelIndex).point.x << " " << cornersSecondPic.at(bestPixelIndex).point.y << endl;*/
 			cornersSecondPic.at(bestPixelIndex).matched = true;
-			Mat test = bothOriginalPic.clone();
-			line(test, Point(comparedPixel.x, comparedPixel.y), Point(cornersSecondPic.at(bestPixelIndex).point.x + secondOriginalPic.cols, cornersSecondPic.at(bestPixelIndex).point.y), Scalar(0, 0, 255), 1);
-			imshow("tamere", test);
-			waitKey(0);
+
+			Mat test;
+			line(joinedCorners, Point(comparedPixel.x, comparedPixel.y), Point(cornersSecondPic.at(bestPixelIndex).point.x + secondOriginalPic.cols, cornersSecondPic.at(bestPixelIndex).point.y), Scalar(0, 0, 255), 1);
+			//imshow("tamere", test);
+			//waitKey(0);
 		}
 	}
 
-	imshow("Picture", bothOriginalPic);
+	imshow("Picture", joinedCorners);
 	waitKey(0);
 	// for (unsigned int i = 0; i < originalPictures.size(); i++)
 	// {
