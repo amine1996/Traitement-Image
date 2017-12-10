@@ -80,7 +80,7 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 				//Save the pixel as a corner
 				if (nbContiguousBrighter >= neededContiguous || nbContiguousDarker >= neededContiguous)
 				{
-					cornerPoint cp = {Point(col, row), 0, INT_MAX};
+					cornerPoint cp = {Point(col, row), nullptr, 0, INT_MAX};
 					vecCorners.push_back(cp);
 
 					break;
@@ -171,7 +171,7 @@ void getMatchs(vector<cornerPoint> *cornersFirstPic, vector<cornerPoint> *corner
 					SSD += (val1 - val2) * (val1 - val2);
 				}
 
-				if (SSD < min && SSD < cornersFirstPic->at(i).matchedScore && SSD < 100 && (min2 - SSD) > 10)
+				if (SSD < min && SSD < cornersFirstPic->at(i).matchedScore && SSD < 2500 && (min2 - SSD) > 10)
 				{
 					min2 = min;
 					min = SSD;
@@ -179,8 +179,13 @@ void getMatchs(vector<cornerPoint> *cornersFirstPic, vector<cornerPoint> *corner
 				}
 			}
 		}
-
-	}
+		
+		if (min < cornersFirstPic->at(i).matchedScore && bestPixelIndex != -1)
+		{
+			cornersFirstPic->at(i).matchedScore = min;
+			cornersFirstPic->at(i).match = &cornersSecondPic->at(bestPixelIndex);
+		}
+	}	
 }
 
 int main(int argc, char **argv)
@@ -235,7 +240,7 @@ int main(int argc, char **argv)
 	setPatchMeans(&cornersFirstPic, firstGrayscalePic);
 	setPatchMeans(&cornersSecondPic, secondGrayscalePic);
 
-	for (unsigned int i = 0; i < cornersFirstPic.size(); i++)
+	/*for (unsigned int i = 0; i < cornersFirstPic.size(); i++)
 	{
 		Point comparedPixel = cornersFirstPic.at(i).point;
 
@@ -288,7 +293,7 @@ int main(int argc, char **argv)
 			cout << min << endl;
 			cornersFirstPic.at(i).matchedScore = min;
 			cornersFirstPic.at(i).match = &cornersSecondPic.at(bestPixelIndex);
-
+		}
 
 
 			// Mat test = joinedCorners.clone();
@@ -298,8 +303,22 @@ int main(int argc, char **argv)
 				//imshow("tamere", test);
 				//waitKey(0);
 			}
+		}*/
+		getMatchs(&cornersFirstPic, &cornersSecondPic,firstGrayscalePic,secondGrayscalePic);
+		getMatchs(&cornersSecondPic, &cornersFirstPic,secondGrayscalePic,firstGrayscalePic);
+
+		for(int i = 0; i< cornersFirstPic.size(); i++){
+			cornerPoint* corner = cornersFirstPic.at(i).match;
+			if(corner == nullptr)
+				continue;
+			if(cornersFirstPic.at(i).point == corner->point ){
+				line(joinedCorners, Point(cornersFirstPic.at(i).point.x, cornersFirstPic.at(i).point.y), Point(corner->point.x + secondOriginalPic.cols, corner->point.y), Scalar(0, 0, 255), 1);
+			}
 		}
-	}
+		
+
+
+	
 
 	imshow("Picture", joinedCorners);
 	waitKey(0);
