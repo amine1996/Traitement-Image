@@ -7,9 +7,11 @@
 using namespace std;
 using namespace cv;
 
+
 struct cornerPoint
 {
 	Point point;
+	cornerPoint * match;
 	int meanPatch;
 	int matchedScore;
 };
@@ -129,6 +131,58 @@ void setPatchMeans(vector<cornerPoint> *myCorners, Mat pic)
 	}
 }
 
+void getMatchs(vector<cornerPoint> *cornersFirstPic, vector<cornerPoint> *cornersSecondPic, Mat firstGrayscalePic, Mat secondGrayscalePic)
+{
+	for (unsigned int i = 0; i < cornersFirstPic->size(); i++)
+	{
+		Point comparedPixel = cornersFirstPic->at(i).point;
+
+		int bestPixelIndex = -1;
+		long int min = INT_MAX;
+		long int min2 = INT_MAX;
+
+		for (unsigned int j = 0; j < cornersSecondPic->size(); j++)
+		{
+			Point pixelToCompare = cornersSecondPic->at(j).point;
+
+			//Looking for a 3x3 pixel around each corner
+			long int SSD = 0;
+
+			//3x3 area around both pixels
+			for (int m = -2; m <= 2; m++)
+				{
+					//TODO : check les rows et cols et voir si les points sont bien comparés
+					if (comparedPixel.y + m >= firstGrayscalePic.rows || comparedPixel.y + m < 0)
+						continue;
+
+					if (pixelToCompare.y + m >= secondGrayscalePic.rows || pixelToCompare.y + m < 0)
+						continue;
+					for (int k = -2; k <= 2; k++)
+					{
+						if (comparedPixel.x + k >= firstGrayscalePic.cols || comparedPixel.x + k < 0)
+							continue;
+
+						if (pixelToCompare.x + k >= secondGrayscalePic.cols || pixelToCompare.x + k < 0)
+							continue;
+
+					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.y + m, comparedPixel.x + k) - cornersFirstPic->at(i).meanPatch;
+					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.y + m, pixelToCompare.x + k) - cornersSecondPic->at(j).meanPatch;
+
+					SSD += (val1 - val2) * (val1 - val2);
+				}
+
+				if (SSD < min && SSD < cornersFirstPic->at(i).matchedScore && SSD < 100 && (min2 - SSD) > 10)
+				{
+					min2 = min;
+					min = SSD;
+					bestPixelIndex = j;					
+				}
+			}
+		}
+
+	}
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 4)
@@ -187,6 +241,7 @@ int main(int argc, char **argv)
 
 		int bestPixelIndex = -1;
 		long int min = INT_MAX;
+		long int min2 = INT_MAX;
 
 		for (unsigned int j = 0; j < cornersSecondPic.size(); j++)
 		{
@@ -196,15 +251,7 @@ int main(int argc, char **argv)
 			long int SSD = 0;
 
 			//3x3 area around both pixels
-			for (int k = -2; k <= 2; k++)
-			{
-				if (comparedPixel.x + k >= firstGrayscalePic.cols || comparedPixel.x + k < 0)
-					continue;
-
-				if (pixelToCompare.x + k >= secondGrayscalePic.cols || pixelToCompare.x + k < 0)
-					continue;
-
-				for (int m = -2; m <= 2; m++)
+			for (int m = -2; m <= 2; m++)
 				{
 					//TODO : check les rows et cols et voir si les points sont bien comparés
 					if (comparedPixel.y + m >= firstGrayscalePic.rows || comparedPixel.y + m < 0)
@@ -212,6 +259,13 @@ int main(int argc, char **argv)
 
 					if (pixelToCompare.y + m >= secondGrayscalePic.rows || pixelToCompare.y + m < 0)
 						continue;
+					for (int k = -2; k <= 2; k++)
+					{
+						if (comparedPixel.x + k >= firstGrayscalePic.cols || comparedPixel.x + k < 0)
+							continue;
+
+						if (pixelToCompare.x + k >= secondGrayscalePic.cols || pixelToCompare.x + k < 0)
+							continue;
 
 					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.y + m, comparedPixel.x + k) - cornersFirstPic.at(i).meanPatch;
 					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.y + m, pixelToCompare.x + k) - cornersSecondPic.at(j).meanPatch;
@@ -219,18 +273,23 @@ int main(int argc, char **argv)
 					SSD += (val1 - val2) * (val1 - val2);
 				}
 
-				if (SSD < min && SSD < cornersFirstPic.at(i).matchedScore && SSD < 1000)
+				if (SSD < min && SSD < cornersFirstPic.at(i).matchedScore && SSD < 100 && (min2 - SSD) > 10)
 				{
+					min2 = min;
 					min = SSD;
-					bestPixelIndex = j;
+					bestPixelIndex = j;					
 				}
 			}
 		}
+		
 
 		if (min < cornersFirstPic.at(i).matchedScore && bestPixelIndex != -1)
 		{
 			cout << min << endl;
 			cornersFirstPic.at(i).matchedScore = min;
+			cornersFirstPic.at(i).match = &cornersSecondPic.at(bestPixelIndex);
+
+
 
 			// Mat test = joinedCorners.clone();
 			if (comparedPixel.y > 0)
