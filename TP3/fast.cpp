@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 			long int SSD = 0;
 
 			//3x3 area around both pixels
-			for (int k = -1; k <= 1; k++)
+			for (int k = -2; k <= 2; k++)
 			{
 				if (comparedPixel.x + k >= firstGrayscalePic.cols || comparedPixel.x + k < 0)
 					continue;
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 				if (pixelToCompare.x + k >= secondGrayscalePic.cols || pixelToCompare.x + k < 0)
 					continue;
 
-				for (int m = -1; m <= 1; m++)
+				for (int m = -2; m <= 2; m++)
 				{
 					//TODO : check les rows et cols et voir si les points sont bien comparés
 					if (comparedPixel.y + m >= firstGrayscalePic.rows || comparedPixel.y + m < 0)
@@ -213,13 +213,13 @@ int main(int argc, char **argv)
 					if (pixelToCompare.y + m >= secondGrayscalePic.rows || pixelToCompare.y + m < 0)
 						continue;
 
-					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.y + k, comparedPixel.x + m) - cornersFirstPic.at(i).meanPatch;
-					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.y + k, pixelToCompare.x + m) - cornersSecondPic.at(j).meanPatch;
+					uchar val1 = firstGrayscalePic.at<uchar>(comparedPixel.y + m, comparedPixel.x + k) - cornersFirstPic.at(i).meanPatch;
+					uchar val2 = secondGrayscalePic.at<uchar>(pixelToCompare.y + m, pixelToCompare.x + k) - cornersSecondPic.at(j).meanPatch;
 
 					SSD += (val1 - val2) * (val1 - val2);
 				}
 
-				if (SSD < min && SSD < cornersFirstPic.at(i).matchedScore && SSD == 0)
+				if (SSD < min && SSD < cornersFirstPic.at(i).matchedScore && SSD < 1000)
 				{
 					min = SSD;
 					bestPixelIndex = j;
@@ -232,12 +232,12 @@ int main(int argc, char **argv)
 			cout << min << endl;
 			cornersFirstPic.at(i).matchedScore = min;
 
-			Mat test = joinedCorners.clone();
-			if (comparedPixel.x > 250)
+			// Mat test = joinedCorners.clone();
+			if (comparedPixel.y > 0)
 			{
-				line(test, Point(comparedPixel.x, comparedPixel.y), Point(cornersSecondPic.at(bestPixelIndex).point.x + secondOriginalPic.cols, cornersSecondPic.at(bestPixelIndex).point.y), Scalar(0, 0, 255), 1);
-				imshow("tamere", test);
-				waitKey(0);
+				line(joinedCorners, Point(comparedPixel.x, comparedPixel.y), Point(cornersSecondPic.at(bestPixelIndex).point.x + secondOriginalPic.cols, cornersSecondPic.at(bestPixelIndex).point.y), Scalar(0, 0, 255), 1);
+				//imshow("tamere", test);
+				//waitKey(0);
 			}
 		}
 	}
