@@ -21,9 +21,9 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 	const vector<int> vecDeltaY = {3, 3, 2, 1, 0, -1, -2, -3, -3, -3, -2, -1, 0, 1, 2, 3};
 	vector<cornerPoint> vecCorners;
 
-	for (int col = 0; col < grayscalePic.cols; col++)
-	{
-		for (int row = 0; row < grayscalePic.rows; row++)
+	for (int row = 0; row < grayscalePic.rows; row++)
+		{
+		for (int col = 0; col < grayscalePic.cols; col++)
 		{
 			//Value of the point of interest
 			uchar valCenterPixel = grayscalePic.at<uchar>(row, col);
@@ -52,10 +52,10 @@ vector<cornerPoint> getCorners(Mat grayscalePic)
 				deltaY = vecDeltaY.at(k % vecDeltaX.size());
 
 				//If the pixel is outside the image
-				if (row + deltaX < 0 || row + deltaX > grayscalePic.rows)
+				if (row + deltaX < 0 || row + deltaX >= grayscalePic.rows)
 					continue;
 
-				if (col + deltaY < 0 || col + deltaY > grayscalePic.cols)
+				if (col + deltaY < 0 || col + deltaY >= grayscalePic.cols)
 					continue;
 
 				//Value of the compared pixel
