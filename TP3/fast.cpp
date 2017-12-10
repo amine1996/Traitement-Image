@@ -7,11 +7,19 @@
 using namespace std;
 using namespace cv;
 
+//Size of the patch (1 is 3x3, 2 is 5x5 ...)
 #define SIZE_PATCH 2
+
+//Max threshold to accept a match
 #define SEUIL 2500
+
+//Difference between best minimum and second best minimum
 #define DIFFERENCE_MIN 500
+
+//Number of needed contiguous pixels
 #define NB_CONTIGUOUS 9
 
+//Represents a corner point
 struct cornerPoint
 {
 	//Coordinates of the corner point
