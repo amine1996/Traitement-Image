@@ -17,7 +17,7 @@ using namespace cv;
 #define DIFFERENCE_MIN 500
 
 //Number of needed contiguous pixels
-#define NB_CONTIGUOUS 9
+#define NB_CONTIGUOUS 12
 
 //Represents a corner point
 struct cornerPoint
